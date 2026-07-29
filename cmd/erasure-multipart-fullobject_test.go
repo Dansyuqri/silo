@@ -397,4 +397,35 @@ func testAPICompleteMultipartFullObjectVariants(obj ObjectLayer, instanceType, b
 			t.Fatalf("%s: expected server computed checksum %q, got %q", instanceType, want, got)
 		}
 	})
+
+	t.Run("zero-length-object", func(t *testing.T) {
+		// A single empty part is a legal multipart upload: only non-final parts
+		// have a minimum size. The merged checksum must be the checksum of no
+		// bytes, not the empty string.
+		name := "variants/zero-length"
+		empty := []byte{}
+		uploadID := newMultipartUploadHTTP(t, apiRouter, credentials, bucketName, name,
+			typ.String(), xhttp.AmzChecksumTypeFullObject)
+		etags := uploadPartsHTTP(t, apiRouter, credentials, bucketName, name, uploadID, typ, [][]byte{empty})
+
+		rec := completeMultipartUploadHTTP(t, apiRouter, credentials, bucketName, name, uploadID, etags, nil,
+			map[string]string{
+				typ.Key():             mustChecksum(t, typ, empty),
+				xhttp.AmzChecksumType: xhttp.AmzChecksumTypeFullObject,
+			})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: want 200, got %d %s", instanceType, rec.Code, rec.Body.String())
+		}
+		oi, err := obj.GetObjectInfo(t.Context(), bucketName, name, ObjectOptions{})
+		if err != nil {
+			t.Fatalf("%s: GetObjectInfo failed: %v", instanceType, err)
+		}
+		if oi.Size != 0 {
+			t.Fatalf("%s: expected zero length object, got %d", instanceType, oi.Size)
+		}
+		cs, _ := oi.decryptChecksums(0, nil)
+		if got, want := cs[typ.String()], mustChecksum(t, typ, empty); got != want {
+			t.Fatalf("%s: expected stored checksum %q, got %q", instanceType, want, got)
+		}
+	})
 }
