@@ -1026,7 +1026,7 @@ type unwrapper interface {
 	Unwrap() http.ResponseWriter
 }
 
-// headersAlreadyWritten returns true if the headers have already been written
+// headersAlreadyWritten returns true if an HTTP status has already been written
 // to this response writer. It will unwrap the ResponseWriter if possible to try
 // and find a trackingResponseWriter.
 func headersAlreadyWritten(w http.ResponseWriter) bool {
@@ -1041,13 +1041,17 @@ func headersAlreadyWritten(w http.ResponseWriter) bool {
 	}
 }
 
-// trackingResponseWriter wraps a ResponseWriter and notes when WriterHeader has
-// been called. This allows high level request handlers to check if something
-// has already sent the header.
+// trackingResponseWriter wraps a ResponseWriter and records when an HTTP status
+// has been written, explicitly or implicitly by Write or an effective Flush.
+//
+// Informational responses are treated as final. internal/http.ResponseRecorder
+// has the same limitation, so 1xx support must be fixed in both layers.
 type trackingResponseWriter struct {
 	http.ResponseWriter
 	headerWritten bool
 }
+
+var _ http.Flusher = (*trackingResponseWriter)(nil)
 
 func (w *trackingResponseWriter) WriteHeader(statusCode int) {
 	if !w.headerWritten {
@@ -1057,13 +1061,21 @@ func (w *trackingResponseWriter) WriteHeader(statusCode int) {
 }
 
 func (w *trackingResponseWriter) Write(b []byte) (int, error) {
+	if !w.headerWritten {
+		w.WriteHeader(http.StatusOK)
+	}
 	return w.ResponseWriter.Write(b)
 }
 
 func (w *trackingResponseWriter) Flush() {
-	if f, ok := w.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
+	f, ok := w.ResponseWriter.(http.Flusher)
+	if !ok {
+		return
 	}
+	if !w.headerWritten {
+		w.WriteHeader(http.StatusOK)
+	}
+	f.Flush()
 }
 
 func (w *trackingResponseWriter) Unwrap() http.ResponseWriter {
