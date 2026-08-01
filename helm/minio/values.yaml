@@ -14,7 +14,7 @@ clusterDomain: cluster.local
 ##
 image:
   repository: pgsty/minio
-  tag: RELEASE.2026-06-18T00-00-00Z
+  tag: RELEASE.2026-08-04T00-00-00Z
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -25,7 +25,7 @@ imagePullSecrets: []
 ##
 mcImage:
   repository: pgsty/minio
-  tag: RELEASE.2026-06-18T00-00-00Z
+  tag: RELEASE.2026-08-04T00-00-00Z
   pullPolicy: IfNotPresent
 
 ## minio mode, i.e. standalone or distributed
@@ -365,21 +365,22 @@ makePolicyJob:
   exitCommand: ""
 
 ## List of users to be created after minio install
+## Username, password and policy to be assigned to the user.
+## Default policies are [readonly|readwrite|writeonly|consoleAdmin|diagnostics].
+## Add new policies as explained here https://silo.pigsty.io/administration/identity-access-management.html#access-management
+## NOTE: this will fail if LDAP is enabled in your MinIO deployment.
 ##
-users:
-  ## Username, password and policy to be assigned to the user
-  ## Default policies are [readonly|readwrite|writeonly|consoleAdmin|diagnostics]
-  ## Add new policies as explained here https://silo.pigsty.io/administration/identity-access-management.html#access-management
-  ## NOTE: this will fail if LDAP is enabled in your MinIO deployment
-  ## make sure to disable this if you are using LDAP.
-  - accessKey: console
-    secretKey: console123
-    policy: consoleAdmin
-  # Or you can refer to specific secret
-  #- accessKey: externalSecret
-  #  existingSecret: my-secret
-  #  existingSecretKey: password
-  #  policy: readonly
+## Example:
+## users:
+##   - accessKey: console
+##     secretKey: change-me
+##     policy: consoleAdmin
+## Or refer to a specific secret:
+##   - accessKey: externalSecret
+##     existingSecret: my-secret
+##     existingSecretKey: password
+##     policy: readonly
+users: []
 
 ## Additional Annotations for the Kubernetes Job makeUserJob
 makeUserJob:
