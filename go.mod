@@ -5,6 +5,9 @@ go 1.26.5
 // Use Georg Mangold's maintained Console fork while keeping upstream import paths.
 replace github.com/minio/console => github.com/georgmangold/console v1.9.1
 
+// Use Pigsty's maintained mc fork for Console's embedded client code.
+replace github.com/minio/mc => github.com/pgsty/mc v0.0.0-20260801042411-ad10a2a10b76
+
 // Fix LDAP TLS regression: DialURL() was not passing TLS config for ldaps:// connections,
 // causing InsecureSkipVerify, RootCAs, and other TLS settings to be silently ignored.
 // See: https://github.com/pgsty/minio/issues/15
@@ -103,8 +106,8 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/xdg/scram v1.0.5
 	github.com/zeebo/xxh3 v1.1.0
-	go.etcd.io/etcd/api/v3 v3.6.8
-	go.etcd.io/etcd/client/v3 v3.6.8
+	go.etcd.io/etcd/api/v3 v3.6.9
+	go.etcd.io/etcd/client/v3 v3.6.9
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v3 v3.0.4
@@ -283,7 +286,7 @@ require (
 	github.com/xdg/stringprep v1.0.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.8 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.9 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.43.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.67.0 // indirect
