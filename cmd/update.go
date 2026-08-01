@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"crypto"
 	"crypto/tls"
 	"encoding/hex"
@@ -42,7 +43,6 @@ import (
 	xnet "github.com/minio/pkg/v3/net"
 	"github.com/minio/selfupdate"
 	gopsutilcpu "github.com/shirou/gopsutil/v3/cpu"
-	"github.com/valyala/bytebufferpool"
 )
 
 const (
@@ -532,26 +532,21 @@ func downloadBinary(u *url.URL, mode string) (binCompressed []byte, bin []byte, 
 	}
 	defer xhttp.DrainBody(reader)
 
-	b := bytebufferpool.Get()
-	bc := bytebufferpool.Get()
-	defer func() {
-		b.Reset()
-		bc.Reset()
+	var b, bc bytes.Buffer
 
-		bytebufferpool.Put(b)
-		bytebufferpool.Put(bc)
-	}()
-
-	w, err := zstd.NewWriter(bc)
+	w, err := zstd.NewWriter(&bc)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if _, err = io.Copy(w, io.TeeReader(reader, b)); err != nil {
+	if _, err = io.Copy(w, io.TeeReader(reader, &b)); err != nil {
+		_ = w.Close()
 		return nil, nil, err
 	}
 
-	w.Close()
+	if err = w.Close(); err != nil {
+		return nil, nil, err
+	}
 	return bc.Bytes(), b.Bytes(), nil
 }
 

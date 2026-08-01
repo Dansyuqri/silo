@@ -18,6 +18,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -28,7 +29,72 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
+	"github.com/valyala/bytebufferpool"
 )
+
+func TestDownloadBinaryReturnsOwnedBuffers(t *testing.T) {
+	previousMaxProcs := runtime.GOMAXPROCS(1)
+	t.Cleanup(func() {
+		runtime.GOMAXPROCS(previousMaxProcs)
+	})
+
+	payload := []byte("minio update payload")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(payload)
+	}))
+	t.Cleanup(server.Close)
+
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	compressed, downloaded, err := downloadBinary(u, "server")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(downloaded, payload) {
+		t.Fatalf("downloaded binary is %q, want %q", downloaded, payload)
+	}
+	decoder, err := zstd.NewReader(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(decoder.Close)
+	decompressed, err := decoder.DecodeAll(compressed, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(decompressed, payload) {
+		t.Fatalf("decompressed binary is %q, want %q", decompressed, payload)
+	}
+	wantCompressed := bytes.Clone(compressed)
+	wantDownloaded := bytes.Clone(downloaded)
+
+	// Reuse buffers returned to bytebufferpool. downloadBinary's results must
+	// remain valid after the function returns, regardless of later pool users.
+	pooled := make([]*bytebufferpool.ByteBuffer, 8)
+	for i := range pooled {
+		pooled[i] = bytebufferpool.Get()
+		if cap(pooled[i].B) > 0 {
+			pooled[i].B = pooled[i].B[:cap(pooled[i].B)]
+			for j := range pooled[i].B {
+				pooled[i].B[j] = 0xa5
+			}
+		}
+	}
+	for _, b := range pooled {
+		bytebufferpool.Put(b)
+	}
+
+	if !bytes.Equal(compressed, wantCompressed) {
+		t.Fatal("compressed download aliases a buffer returned to bytebufferpool")
+	}
+	if !bytes.Equal(downloaded, wantDownloaded) {
+		t.Fatal("downloaded binary aliases a buffer returned to bytebufferpool")
+	}
+}
 
 func TestMinioVersionToReleaseTime(t *testing.T) {
 	testCases := []struct {
