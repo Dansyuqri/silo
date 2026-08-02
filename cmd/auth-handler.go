@@ -343,6 +343,26 @@ func checkRequestAuthType(ctx context.Context, r *http.Request, action policy.Ac
 	return s3Err
 }
 
+func checkRequestAuthTypeWithExistingTags(ctx context.Context, r *http.Request, action policy.Action, bucketName, objectName, existingTags string) (s3Err APIErrorCode) {
+	logger.GetReqInfo(ctx).BucketName = bucketName
+	logger.GetReqInfo(ctx).ObjectName = objectName
+
+	if s3Err = authenticateRequest(ctx, r, action); s3Err != ErrNone {
+		return s3Err
+	}
+	return authorizeRequestWithExistingTags(ctx, r, action, existingTags)
+}
+
+func checkRequestAuthTypeWithRequestTags(ctx context.Context, r *http.Request, action policy.Action, bucketName, objectName string, requestTags *string) (s3Err APIErrorCode) {
+	logger.GetReqInfo(ctx).BucketName = bucketName
+	logger.GetReqInfo(ctx).ObjectName = objectName
+
+	if s3Err = authenticateRequest(ctx, r, action); s3Err != ErrNone {
+		return s3Err
+	}
+	return authorizeRequestWithTags(ctx, r, action, "", requestTags)
+}
+
 // checkRequestAuthTypeWithVID is similar to checkRequestAuthType
 // passes versionID additionally.
 func checkRequestAuthTypeWithVID(ctx context.Context, r *http.Request, action policy.Action, bucketName, objectName, versionID string) (s3Err APIErrorCode) {
@@ -416,6 +436,14 @@ func authenticateRequest(ctx context.Context, r *http.Request, action policy.Act
 }
 
 func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action) (s3Err APIErrorCode) {
+	return authorizeRequestWithExistingTags(ctx, r, action, "")
+}
+
+func authorizeRequestWithExistingTags(ctx context.Context, r *http.Request, action policy.Action, existingTags string) (s3Err APIErrorCode) {
+	return authorizeRequestWithTags(ctx, r, action, existingTags, nil)
+}
+
+func authorizeRequestWithTags(ctx context.Context, r *http.Request, action policy.Action, existingTags string, requestTags *string) (s3Err APIErrorCode) {
 	reqInfo := logger.GetReqInfo(ctx)
 	if reqInfo == nil {
 		return ErrAccessDenied
@@ -435,7 +463,7 @@ func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action
 			Groups:          cred.Groups,
 			Action:          action,
 			BucketName:      bucket,
-			ConditionValues: getConditionValues(r, region, auth.AnonymousCredentials),
+			ConditionValues: getConditionValuesWithTags(r, region, auth.AnonymousCredentials, existingTags, requestTags),
 			IsOwner:         false,
 			ObjectName:      object,
 		}) {
@@ -451,7 +479,7 @@ func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action
 				Groups:          cred.Groups,
 				Action:          policy.ListBucketAction,
 				BucketName:      bucket,
-				ConditionValues: getConditionValues(r, region, auth.AnonymousCredentials),
+				ConditionValues: getConditionValuesWithTags(r, region, auth.AnonymousCredentials, existingTags, requestTags),
 				IsOwner:         false,
 				ObjectName:      object,
 			}) {
@@ -468,7 +496,7 @@ func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action
 			Groups:          cred.Groups,
 			Action:          policy.Action(policy.DeleteObjectVersionAction),
 			BucketName:      bucket,
-			ConditionValues: getConditionValues(r, "", cred),
+			ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
 			ObjectName:      object,
 			IsOwner:         owner,
 			Claims:          cred.Claims,
@@ -482,7 +510,7 @@ func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action
 		Groups:          cred.Groups,
 		Action:          action,
 		BucketName:      bucket,
-		ConditionValues: getConditionValues(r, "", cred),
+		ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
 		ObjectName:      object,
 		IsOwner:         owner,
 		Claims:          cred.Claims,
@@ -499,7 +527,7 @@ func authorizeRequest(ctx context.Context, r *http.Request, action policy.Action
 			Groups:          cred.Groups,
 			Action:          policy.ListBucketAction,
 			BucketName:      bucket,
-			ConditionValues: getConditionValues(r, "", cred),
+			ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
 			ObjectName:      object,
 			IsOwner:         owner,
 			Claims:          cred.Claims,
@@ -720,6 +748,10 @@ func isPutRetentionAllowed(bucketName, objectName string, retDays int, retDate t
 // call verifies bucket policies and IAM policies, supports multi user
 // checks etc.
 func isPutActionAllowed(ctx context.Context, atype authType, bucketName, objectName string, r *http.Request, action policy.Action) (s3Err APIErrorCode) {
+	return isPutActionAllowedWithRequestTags(ctx, atype, bucketName, objectName, r, action, nil)
+}
+
+func isPutActionAllowedWithRequestTags(ctx context.Context, atype authType, bucketName, objectName string, r *http.Request, action policy.Action, requestTags *string) (s3Err APIErrorCode) {
 	var cred auth.Credentials
 	var owner bool
 	region := globalSite.Region()
@@ -760,7 +792,7 @@ func isPutActionAllowed(ctx context.Context, atype authType, bucketName, objectN
 			Groups:          cred.Groups,
 			Action:          action,
 			BucketName:      bucketName,
-			ConditionValues: getConditionValues(r, "", auth.AnonymousCredentials),
+			ConditionValues: getConditionValuesWithTags(r, "", auth.AnonymousCredentials, "", requestTags),
 			IsOwner:         false,
 			ObjectName:      objectName,
 		}) {
@@ -774,7 +806,7 @@ func isPutActionAllowed(ctx context.Context, atype authType, bucketName, objectN
 		Groups:          cred.Groups,
 		Action:          action,
 		BucketName:      bucketName,
-		ConditionValues: getConditionValues(r, "", cred),
+		ConditionValues: getConditionValuesWithTags(r, "", cred, "", requestTags),
 		ObjectName:      objectName,
 		IsOwner:         owner,
 		Claims:          cred.Claims,

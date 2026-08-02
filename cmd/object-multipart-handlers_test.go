@@ -68,7 +68,7 @@ func testAPICompleteMultipartHandlerPartOrder(obj ObjectLayer, instanceType, buc
 	}{
 		// Defect reproduction. A duplicated part number is the case that
 		// sort.SliceIsSorted() used to accept, because its '<' predicate treats
-		// equal neighbours as sorted. Each of these assembled the same part into
+		// equal neighbors as sorted. Each of these assembled the same part into
 		// the object more than once, inflating it past what was uploaded.
 		{
 			name:               "duplicate-part",
