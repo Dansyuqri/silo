@@ -62,5 +62,8 @@ dist/
 
 .claude/
 .codex/
+AGENTS.md
+CLAUDE.md
 _bmad/
 _bmad-output/
+docs/security/
