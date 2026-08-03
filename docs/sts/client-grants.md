@@ -113,5 +113,5 @@ $ go run client-grants.go -cid PoEgXP6uVO45IsENRngDXj5Au5Ya -csec eKsw6z8CtOJVBt
 
 ## Explore Further
 
-- [MinIO Admin Complete Guide](https://silo.pigsty.io/reference/minio-mc-admin.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO Admin Complete Guide](https://silo.pgsty.com/reference/minio-mc-admin/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)

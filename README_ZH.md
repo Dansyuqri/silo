@@ -1,8 +1,7 @@
-<p align="center">
-  <img src=".github/logo.svg" alt="Silo" width="260">
-</p>
-
-<h1 align="center">Silo</h1>
+<h1 align="center">
+  <img src=".github/silo.svg" alt="" height="80">
+  <img src=".github/silo-word.svg" alt="SILO" height="80">
+</h1>
 
 <p align="center">
   <strong>审慎维护的 MinIO 社区分支</strong><br>
@@ -10,11 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="https://silo.pigsty.cc">文档</a> ·
+  <a href="https://silo.pgsty.com/zh/">官网</a> ·
+  <a href="https://silo.pgsty.com/zh/docs/">文档</a> ·
+  <a href="https://silo.pgsty.com/zh/download/">下载</a> ·
+  <a href="https://silo.pgsty.com/zh/blog/">博客</a> ·
   <a href="https://github.com/pgsty/minio/releases">版本发布</a> ·
-  <a href="https://hub.docker.com/r/pgsty/minio">容器镜像</a> ·
-  <a href="SECURITY.md">安全策略</a>
+  <a href="SECURITY.md">安全策略</a> ·
+  <a href="README.md">English</a>
 </p>
 
 <p align="center">
@@ -32,6 +33,21 @@
 Silo 维护一条基于 MinIO [`RELEASE.2025-12-03T12-00-00Z`](https://github.com/minio/minio/releases/tag/RELEASE.2025-12-03T12-00-00Z) 的下游版本线，为上游停止社区发行后仍在运行 MinIO 兼容部署的用户提供持续构建与发行产物。
 
 Pigsty 使用本分支提供对象存储，包括 PostgreSQL 备份存储。
+
+项目统一门户为 [silo.pgsty.com](https://silo.pgsty.com/zh/)，集中提供文档、下载安装、版本与安全动态及项目背景。中文内容位于 `/zh/`，英文内容位于站点根路径。
+
+## 按需求选择入口
+
+| 需求 | 权威入口 |
+| :-- | :-- |
+| 项目概览与全站导航 | [Silo 中文门户](https://silo.pgsty.com/zh/)（[English](https://silo.pgsty.com/)） |
+| 安装方式与软件下载 | [下载与安装](https://silo.pgsty.com/zh/download/)（[English](https://silo.pgsty.com/download/)） |
+| 运维、管理、开发与参考指南 | [中文文档](https://silo.pgsty.com/zh/docs/)（[English](https://silo.pgsty.com/docs/)） |
+| 项目动态、版本说明与安全通告 | [博客](https://silo.pgsty.com/zh/blog/)，包括[版本发布](https://silo.pgsty.com/zh/blog/release/)与[安全通告](https://silo.pgsty.com/zh/blog/security/) |
+| 带版本的二进制、校验和与源码归档 | [GitHub Releases](https://github.com/pgsty/minio/releases) |
+| 缺陷报告与功能讨论 | [GitHub Issues](https://github.com/pgsty/minio/issues) |
+| 私密漏洞报告 | [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) |
+| 许可证、署名与商标信息 | [许可证](https://silo.pgsty.com/zh/about/license/)、[署名归属](https://silo.pgsty.com/zh/about/attribution/)与[商标政策](https://silo.pgsty.com/zh/about/trademark/) |
 
 ## 维护政策
 
@@ -61,20 +77,21 @@ Silo 尽量保留：
 - MinIO 兼容的 S3 API、配置、环境变量与命令行约定；
 - `RELEASE.YYYY-MM-DDTHH-MM-SSZ` 标签、容器入口与常见部署方式。
 
-兼容是目标，而非保证。安全修复可能改变行为。每个版本都应视为下游升级：锁定版本，阅读[版本说明](https://github.com/pgsty/minio/releases)与[安全公告](docs/security/advisories.md)，保留回滚路径，并在生产使用前完成测试。
+兼容性是默认约束。只要不会留下安全问题，Silo 就保留既有的协议、客户端、配置与运维行为；只有在修复重大安全问题确有必要时才会打破兼容，并在版本说明中明确受影响行为与迁移方式。每个版本仍应视为下游升级：锁定版本，阅读[版本说明](https://silo.pgsty.com/zh/blog/release/)与[安全公告](docs/security/advisories.md)，保留回滚路径，并在生产使用前完成测试。
 
-## 发行产物
+## 下载与发行产物
+
+请先在[下载与安装](https://silo.pgsty.com/zh/download/)页面选择合适的安装方式；GitHub Releases 仍是带版本服务端二进制、校验和与源码归档的获取位置。
 
 | 产物 | 位置 |
 | :-- | :-- |
 | 源码 | [`github.com/pgsty/minio`](https://github.com/pgsty/minio) |
 | 容器镜像 | [`pgsty/minio`](https://hub.docker.com/r/pgsty/minio)，支持 `linux/amd64` 与 `linux/arm64` 多架构清单 |
-| 服务端二进制 | [GitHub Releases](https://github.com/pgsty/minio/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
+| 服务端二进制与校验和 | [GitHub Releases](https://github.com/pgsty/minio/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
 | Linux 软件包 | RPM、DEB、APK，并通过 [Pigsty 软件仓库](https://pigsty.cc/docs/repo/) 分发 |
 | 客户端 | [`pgsty/mc`](https://github.com/pgsty/mc)，容器内以 `mcli` 提供，并保留 `mc` 兼容别名 |
 | 管理控制台 | 社区维护的 [`georgmangold/console`](https://github.com/georgmangold/console)，嵌入服务端构建 |
-| 文档 | [中文](https://silo.pigsty.cc)、[英文](https://silo.pigsty.io)与 [`pgsty/minio-docs`](https://github.com/pgsty/minio-docs) |
-| 安全记录 | [`SECURITY.md`](SECURITY.md)、[`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) 与[本分支安全公告](docs/security/advisories.md) |
+| 共享库 | [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) v3.7.0，通过 `replace` 指令使用，同时保留 `github.com/minio/pkg/v3` 导入路径（[版本说明](https://silo.pgsty.com/zh/blog/release/pkg-3.7.0/)） |
 
 ## 快速开始
 
@@ -116,11 +133,11 @@ go build -o minio .
 ./minio --version
 ```
 
-部署：[Silo 中文文档](https://silo.pigsty.cc) · [Pigsty MinIO 模块](https://pigsty.cc/docs/minio/)
+其他安装方式（包括原生软件包、二进制、Podman、Kubernetes、源码构建与 Pigsty Ansible）请前往[下载与安装](https://silo.pgsty.com/zh/download/)；生产部署与管理请从 [Silo 中文文档](https://silo.pgsty.com/zh/docs/)开始。Pigsty 用户也可以直接使用 [Pigsty MinIO 模块](https://pigsty.cc/docs/minio/)。
 
 ## 安全
 
-安全修复面向活跃的 `master` 分支，并记录在[安全公告](docs/security/advisories.md)中。请按照 [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) 私密报告漏洞；同时影响上游 MinIO 的问题也应向上游报告。
+安全修复面向活跃的 `master` 分支，并记录在仓库[安全公告](docs/security/advisories.md)与门户[安全通告](https://silo.pgsty.com/zh/blog/security/)中。请按照 [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) 私密报告漏洞；同时影响上游 MinIO 的问题也应向上游报告。
 
 ## 参与贡献
 
@@ -134,10 +151,10 @@ Issue 与 Pull Request 应说明受影响版本、复现步骤、影响、预期
 
 | 文章 | 主题 |
 | :-- | :-- |
-| [MinIO已死](https://vonng.com/db/minio-is-dead/) | 上游项目与发行模式的变化 |
-| [MinIO已死，谁能接盘？](https://vonng.com/db/minio-alternative/) | 可选替代方案评估 |
-| [MinIO 已死，MinIO 复生](https://vonng.com/db/minio-resurrect/) | 建立分支及其发行流水线 |
-| [续命 MinIO：承诺兑现](https://vonng.com/db/minio-promise-kept/) | 初期安全与维护工作 |
+| [MinIO已死](https://silo.pgsty.com/zh/blog/post/minio-is-dead/) | 上游项目与发行模式的变化 |
+| [MinIO已死，谁能接盘？](https://silo.pgsty.com/zh/blog/post/minio-alternative/) | 可选替代方案评估 |
+| [MinIO 已死，MinIO 复生](https://silo.pgsty.com/zh/blog/post/minio-resurrect/) | 建立分支及其发行流水线 |
+| [续命 MinIO：承诺兑现](https://silo.pgsty.com/zh/blog/post/minio-promise-kept/) | 初期安全与维护工作 |
 
 ## 许可证与商标
 

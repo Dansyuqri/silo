@@ -172,5 +172,5 @@ These credentials can now be used to perform MinIO API operations.
 
 ## Explore Further
 
-- [MinIO STS Quickstart Guide](https://silo.pigsty.io/developers/security-token-service.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO STS Quickstart Guide](https://silo.pgsty.com/developers/security-token-service/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)

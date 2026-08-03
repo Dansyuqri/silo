@@ -113,5 +113,5 @@ Further, the temp. S3 credentials will never out-live the client certificate. Fo
 
 ## Explore Further
 
-- [MinIO Admin Complete Guide](https://silo.pigsty.io/reference/minio-mc-admin.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO Admin Complete Guide](https://silo.pgsty.com/reference/minio-mc-admin/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)

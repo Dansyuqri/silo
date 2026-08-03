@@ -9,7 +9,7 @@ keywords:
   - object-storage
   - s3
   - cluster
-home: https://silo.pigsty.io
+home: https://silo.pgsty.com/
 icon: https://min.io/resources/img/logo/MINIO_wordmark.png
 sources:
 - https://github.com/pgsty/minio

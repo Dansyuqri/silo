@@ -156,5 +156,5 @@ If 3 or more targets are participating in active-active replication, the replica
 
 ## Explore Further
 
-- [MinIO Bucket Versioning Implementation](https://silo.pigsty.io/administration/object-management/object-versioning.html)
-- [MinIO Client Quickstart Guide](https://silo.pigsty.io/reference/minio-mc.html#quickstart)
+- [MinIO Bucket Versioning Implementation](https://silo.pgsty.com/administration/object-management/object-versioning/)
+- [MinIO Client Quickstart Guide](https://silo.pgsty.com/reference/minio-mc/#quickstart)

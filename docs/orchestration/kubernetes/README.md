@@ -16,6 +16,6 @@ MinIO server exposes un-authenticated liveness endpoints so Kubernetes can nativ
 
 ## Explore Further
 
-- [MinIO Erasure Code QuickStart Guide](https://silo.pigsty.io/operations/concepts/erasure-coding.html)
+- [MinIO Erasure Code QuickStart Guide](https://silo.pgsty.com/operations/concepts/erasure-coding/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/home/)
 - [Helm package manager for kubernetes](https://helm.sh/)

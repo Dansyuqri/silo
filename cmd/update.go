@@ -450,10 +450,10 @@ func getLatestReleaseTime(u *url.URL, timeout time.Duration, mode string) (sha25
 
 const (
 	// Kubernetes deployment doc link.
-	kubernetesDeploymentDoc = "https://silo.pigsty.io/operations/deployments/kubernetes.html"
+	kubernetesDeploymentDoc = "https://silo.pgsty.com/operations/deployments/kubernetes/"
 
 	// Mesos deployment doc link.
-	mesosDeploymentDoc = "https://silo.pigsty.io/operations/deployments/kubernetes.html"
+	mesosDeploymentDoc = "https://silo.pgsty.com/operations/deployments/kubernetes/"
 )
 
 func getDownloadURL(releaseTag string) (downloadURL string) {

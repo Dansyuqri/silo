@@ -8,12 +8,12 @@ In this document we will explain in detail on how to configure admin users.
 
 ### 1. Prerequisites
 
-- Install mc - [MinIO Client Quickstart Guide](https://silo.pigsty.io/reference/minio-mc.html#quickstart)
-- Install MinIO - [MinIO Quickstart Guide](https://silo.pigsty.io/operations/deployments/baremetal-deploy-minio-on-redhat-linux.html)
+- Install mc - [MinIO Client Quickstart Guide](https://silo.pgsty.com/reference/minio-mc/#quickstart)
+- Install MinIO - [MinIO Quickstart Guide](https://silo.pgsty.com/operations/deployments/baremetal-deploy-minio-on-redhat-linux/)
 
 ### 2. Create a new admin user with CreateUser, DeleteUser and ConfigUpdate permissions
 
-Use [`mc admin policy`](https://silo.pigsty.io/reference/minio-mc-admin/mc-admin-policy.html#command-mc.admin.policy) to create custom admin policies.
+Use [`mc admin policy`](https://silo.pgsty.com/reference/minio-mc-admin/mc-admin-policy/#command-mc.admin.policy) to create custom admin policies.
 
 Create new canned policy file `adminManageUser.json`. This policy enables admin user to
 manage other users.
@@ -162,11 +162,11 @@ mc admin policy attach myminio-admin1 user1policy --user=user1
 ### 5. Using an external IDP for admin users
 
 Admin users can also be externally managed by an IDP by configuring admin policy with
-special permissions listed above. Follow [MinIO STS Quickstart Guide](https://silo.pigsty.io/developers/security-token-service.html) to manage users with an IDP.
+special permissions listed above. Follow [MinIO STS Quickstart Guide](https://silo.pgsty.com/developers/security-token-service/) to manage users with an IDP.
 
 ## Explore Further
 
-- [MinIO Client Complete Guide](https://silo.pigsty.io/reference/minio-mc.html)
-- [MinIO STS Quickstart Guide](https://silo.pigsty.io/developers/security-token-service.html)
-- [MinIO Admin Complete Guide](https://silo.pigsty.io/reference/minio-mc-admin.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO Client Complete Guide](https://silo.pgsty.com/reference/minio-mc/)
+- [MinIO STS Quickstart Guide](https://silo.pgsty.com/developers/security-token-service/)
+- [MinIO Admin Complete Guide](https://silo.pgsty.com/reference/minio-mc-admin/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)

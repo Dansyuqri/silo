@@ -51,5 +51,5 @@ Tiering and lifecycle transition are applicable only to erasure/distributed MinI
 
 ## Explore Further
 
-- [MinIO | Golang Client API Reference](https://silo.pigsty.io/developers/go/API.html#SetBucketLifecycle)
+- [MinIO | Golang Client API Reference](https://pkg.go.dev/github.com/minio/minio-go/v7#Client.SetBucketLifecycle)
 - [Object Lifecycle Management](https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html)

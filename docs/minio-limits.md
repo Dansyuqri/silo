@@ -42,14 +42,14 @@ We found the following APIs to be redundant or less useful outside of AWS S3. If
 
 ### List of Amazon S3 Bucket APIs not supported on MinIO
 
-- BucketACL (Use [bucket policies](https://silo.pigsty.io/administration/identity-access-management/policy-based-access-control.html) instead)
+- BucketACL (Use [bucket policies](https://silo.pgsty.com/administration/identity-access-management/policy-based-access-control/) instead)
 - BucketCORS (CORS enabled by default on all buckets for all HTTP verbs, you can optionally restrict the CORS domains)
 - BucketWebsite (Use [`caddy`](https://github.com/caddyserver/caddy) or [`nginx`](https://www.nginx.com/resources/wiki/))
-- BucketAnalytics, BucketMetrics, BucketLogging (Use [bucket notification](https://silo.pigsty.io/administration/monitoring/bucket-notifications.html) APIs)
+- BucketAnalytics, BucketMetrics, BucketLogging (Use [bucket notification](https://silo.pgsty.com/administration/monitoring/bucket-notifications/) APIs)
 
 ### List of Amazon S3 Object APIs not supported on MinIO
 
-- ObjectACL (Use [bucket policies](https://silo.pigsty.io/administration/identity-access-management/policy-based-access-control.html) instead)
+- ObjectACL (Use [bucket policies](https://silo.pgsty.com/administration/identity-access-management/policy-based-access-control/) instead)
 
 ## Object name restrictions on MinIO
 

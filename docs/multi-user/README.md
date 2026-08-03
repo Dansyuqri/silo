@@ -8,13 +8,13 @@ In this document we will explain in detail on how to configure multiple users.
 
 ### 1. Prerequisites
 
-- Install mc - [MinIO Client Quickstart Guide](https://silo.pigsty.io/reference/minio-mc.html#quickstart)
-- Install MinIO - [MinIO Quickstart Guide](https://silo.pigsty.io/operations/deployments/baremetal-deploy-minio-on-redhat-linux.html)
+- Install mc - [MinIO Client Quickstart Guide](https://silo.pgsty.com/reference/minio-mc/#quickstart)
+- Install MinIO - [MinIO Quickstart Guide](https://silo.pgsty.com/operations/deployments/baremetal-deploy-minio-on-redhat-linux/)
 - Configure etcd - [Etcd V3 Quickstart Guide](https://github.com/pgsty/minio/blob/master/docs/sts/etcd.md)
 
 ### 2. Create a new user with canned policy
 
-Use [`mc admin policy`](https://silo.pigsty.io/reference/minio-mc-admin/mc-admin-policy.html) to create canned policies. Server provides a default set of canned policies namely `writeonly`, `readonly` and `readwrite` *(these policies apply to all resources on the server)*. These can be overridden by custom policies using `mc admin policy` command.
+Use [`mc admin policy`](https://silo.pgsty.com/reference/minio-mc-admin/mc-admin-policy/) to create canned policies. Server provides a default set of canned policies namely `writeonly`, `readonly` and `readwrite` *(these policies apply to all resources on the server)*. These can be overridden by custom policies using `mc admin policy` command.
 
 Create new canned policy file `getonly.json`. This policy enables users to download all objects under `my-bucketname`.
 
@@ -272,7 +272,7 @@ Following example shows LDAP users full programmatic access to a LDAP user-speci
 
 ## Explore Further
 
-- [MinIO Client Complete Guide](https://silo.pigsty.io/reference/minio-mc.html)
-- [MinIO STS Quickstart Guide](https://silo.pigsty.io/developers/security-token-service.html)
-- [MinIO Admin Complete Guide](https://silo.pigsty.io/reference/minio-mc-admin.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO Client Complete Guide](https://silo.pgsty.com/reference/minio-mc/)
+- [MinIO STS Quickstart Guide](https://silo.pgsty.com/developers/security-token-service/)
+- [MinIO Admin Complete Guide](https://silo.pgsty.com/reference/minio-mc-admin/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)

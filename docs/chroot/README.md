@@ -51,8 +51,8 @@ Instance is now accessible on the host at port 9000, proceed to access the Web b
 
 ## Explore Further
 
-- [MinIO Erasure Code Overview](https://silo.pigsty.io/operations/concepts/erasure-coding.html)
-- [Use `mc` with MinIO Server](https://silo.pigsty.io/reference/minio-mc.html)
-- [Use `aws-cli` with MinIO Server](https://silo.pigsty.io/integrations/aws-cli-with-minio.html)
-- [Use `minio-go` SDK with MinIO Server](https://silo.pigsty.io/developers/go/minio-go.html)
-- [The MinIO documentation website](https://silo.pigsty.io/index.html)
+- [MinIO Erasure Code Overview](https://silo.pgsty.com/operations/concepts/erasure-coding/)
+- [Use `mc` with MinIO Server](https://silo.pgsty.com/reference/minio-mc/)
+- [Use `aws-cli` with MinIO Server](https://silo.pgsty.com/integrations/aws-cli-with-minio/)
+- [Use `minio-go` SDK with MinIO Server](https://silo.pgsty.com/developers/go/minio-go/)
+- [The MinIO documentation website](https://silo.pgsty.com/docs/)
