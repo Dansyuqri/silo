@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -967,11 +966,15 @@ func (api objectAPIHandlers) CompleteMultipartUploadHandler(w http.ResponseWrite
 		return
 	}
 
-	if !sort.SliceIsSorted(complMultipartUpload.Parts, func(i, j int) bool {
-		return complMultipartUpload.Parts[i].PartNumber < complMultipartUpload.Parts[j].PartNumber
-	}) {
-		writeErrorResponse(ctx, w, errorCodes.ToAPIErr(ErrInvalidPartOrder), r.URL)
-		return
+	// The parts list must be strictly increasing by part number. Gaps are
+	// allowed, repeats are not - sort.SliceIsSorted() with a '<' predicate
+	// considers equal neighbours sorted, so it is checked explicitly here,
+	// before anything is assembled into the target object.
+	for i := 1; i < len(complMultipartUpload.Parts); i++ {
+		if complMultipartUpload.Parts[i-1].PartNumber >= complMultipartUpload.Parts[i].PartNumber {
+			writeErrorResponse(ctx, w, errorCodes.ToAPIErr(ErrInvalidPartOrder), r.URL)
+			return
+		}
 	}
 
 	// Reject retention or governance headers if set, CompleteMultipartUpload spec
