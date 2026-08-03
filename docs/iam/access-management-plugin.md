@@ -125,9 +125,6 @@ The JSON body structure can be seen from this sample:
       ],
       "username": [
         "minio"
-      ],
-      "versionid": [
-        ""
       ]
     },
     "owner": true,

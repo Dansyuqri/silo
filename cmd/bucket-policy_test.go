@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/minio/minio/internal/auth"
+	"github.com/minio/minio/internal/handlers"
 	xhttp "github.com/minio/minio/internal/http"
 	"github.com/minio/pkg/v3/policy"
 	"github.com/minio/pkg/v3/policy/condition"
@@ -161,6 +162,65 @@ func TestGetConditionValuesUsesActualRequestSource(t *testing.T) {
 	}
 }
 
+func TestGetConditionValuesVersionIDPresence(t *testing.T) {
+	nullVersionID, err := condition.NewNullFunc(condition.S3VersionID.ToKey(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	withoutVersionID := condValuesForRequest(t, "http://minio.local/bkt/obj", nil)
+	if _, ok := withoutVersionID["versionid"]; ok {
+		t.Fatalf("an absent versionId was exposed to policy evaluation as %v", withoutVersionID["versionid"])
+	}
+	if !condition.NewFunctions(nullVersionID).Evaluate(withoutVersionID) {
+		t.Fatal("Null s3:versionid=true did not match a request without versionId")
+	}
+
+	const versionID = "7f4b6b5f-bf25-4e98-95df-90cba8070dd8"
+	withVersionID := condValuesForRequest(t,
+		"http://minio.local/bkt/obj?"+url.Values{xhttp.VersionID: {versionID}}.Encode(), nil)
+	if got := withVersionID["versionid"]; !slices.Equal(got, []string{versionID}) {
+		t.Fatalf("expected versionId %q, got %v", versionID, got)
+	}
+	if condition.NewFunctions(nullVersionID).Evaluate(withVersionID) {
+		t.Fatal("Null s3:versionid=true matched a request with versionId")
+	}
+
+	copySourceVersion := condValuesForRequest(t, "http://minio.local/bkt/copied", map[string]string{
+		xhttp.AmzCopySource: "/source-bucket/source-object?" + url.Values{xhttp.VersionID: {versionID}}.Encode(),
+	})
+	if got := copySourceVersion["versionid"]; !slices.Equal(got, []string{versionID}) {
+		t.Fatalf("copy source versionId was lost: got %v", got)
+	}
+
+	// The object layer trims the version before acting on it; the condition value
+	// must be the same effective string, or a padded ?versionId=V%20 would let a
+	// StringEquals/Deny on s3:versionid see a different value than the one deleted.
+	paddedVersion := condValuesForRequest(t,
+		"http://minio.local/bkt/obj?"+url.Values{xhttp.VersionID: {versionID + " "}}.Encode(), nil)
+	if got := paddedVersion["versionid"]; !slices.Equal(got, []string{versionID}) {
+		t.Fatalf("a padded versionId was not trimmed to the effective value: got %v", got)
+	}
+
+	paddedCopySource := condValuesForRequest(t, "http://minio.local/bkt/copied", map[string]string{
+		xhttp.AmzCopySource: "/source-bucket/source-object?" + url.Values{xhttp.VersionID: {versionID + " "}}.Encode(),
+	})
+	if got := paddedCopySource["versionid"]; !slices.Equal(got, []string{versionID}) {
+		t.Fatalf("a padded copy source versionId was not trimmed: got %v", got)
+	}
+
+	// A whitespace-only versionId names no version once trimmed, exactly as the
+	// object layer treats it, so the key must be absent and Null:true must match.
+	blankVersion := condValuesForRequest(t,
+		"http://minio.local/bkt/obj?"+url.Values{xhttp.VersionID: {"   "}}.Encode(), nil)
+	if _, ok := blankVersion["versionid"]; ok {
+		t.Fatalf("a whitespace-only versionId was exposed to policy evaluation as %v", blankVersion["versionid"])
+	}
+	if !condition.NewFunctions(nullVersionID).Evaluate(blankVersion) {
+		t.Fatal("Null s3:versionid=true did not match a request whose versionId was only whitespace")
+	}
+}
+
 func TestGetConditionValuesUsesEffectiveRequestTags(t *testing.T) {
 	rawURL := "http://minio.local/bkt/obj?" + url.Values{
 		strings.ToLower(xhttp.AmzObjectTagging): {"security=public&virus=true"},
@@ -254,6 +314,42 @@ func TestBucketPolicySourceIPCannotBeForged(t *testing.T) {
 	}
 	if allowed("http://minio.local/bkt/obj", map[string]string{"Sourceip": "10.1.2.3"}) {
 		t.Error("a header forged aws:SourceIp")
+	}
+}
+
+// aws:SourceIp must be whatever the hardened resolver decided and nothing else.
+// The resolver is where the forwarded-header trust policy is enforced and where
+// its three modes are tested (internal/handlers/proxy_test.go); this pins the
+// join, so the condition value cannot drift onto some other derivation that the
+// policy would not cover.
+//
+// It also records the default-mode contract: with no trust policy configured,
+// each of the three forwarded headers still sets aws:SourceIp, and so an
+// IpAddress condition is only as good as the network path to the API port.
+// Enforcing such a condition against a client with direct access requires
+// MINIO_API_TRUSTED_PROXIES or _MINIO_API_XFF_HEADER=off.
+func TestGetConditionValuesSourceIPMatchesResolver(t *testing.T) {
+	for _, header := range []map[string]string{
+		nil,
+		{"X-Forwarded-For": "10.1.2.3"},
+		{"X-Real-IP": "10.1.2.3"},
+		{"Forwarded": "for=10.1.2.3"},
+		{"X-Forwarded-For": "10.1.2.3, 198.51.100.9"},
+	} {
+		r, err := http.NewRequest(http.MethodGet, "http://minio.local/bkt/obj", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.RemoteAddr = testCondRemoteILP
+		for k, v := range header {
+			r.Header.Set(k, v)
+		}
+
+		got := resolvedConditionValues(condValuesForRequest(t, "http://minio.local/bkt/obj", header), condition.AWSSourceIP.ToKey().Name())
+		want := handlers.GetSourceIPRaw(r)
+		if len(got) != 1 || got[0] != want {
+			t.Errorf("headers %v: aws:SourceIp = %v, resolver returned %q", header, got, want)
+		}
 	}
 }
 

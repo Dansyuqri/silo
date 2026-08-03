@@ -455,6 +455,19 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 	bucket := reqInfo.BucketName
 	object := reqInfo.ObjectName
 	versionID := reqInfo.VersionID
+	conditionValuesForAuth := func(locationConstraint string, credentials auth.Credentials) map[string][]string {
+		values := getConditionValuesWithTags(r, locationConstraint, credentials, existingTags, requestTags)
+		if action == policy.DeleteObjectAction {
+			// DeleteObjects carries the effective version ID in each XML object,
+			// not in the request query. Keep authorization scoped to that entry.
+			if versionID == "" {
+				delete(values, "versionid")
+			} else {
+				values["versionid"] = []string{versionID}
+			}
+		}
+		return values
+	}
 
 	if action != policy.ListAllMyBucketsAction && cred.AccessKey == "" {
 		// Anonymous checks are not meant for ListAllBuckets action
@@ -463,7 +476,7 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 			Groups:          cred.Groups,
 			Action:          action,
 			BucketName:      bucket,
-			ConditionValues: getConditionValuesWithTags(r, region, auth.AnonymousCredentials, existingTags, requestTags),
+			ConditionValues: conditionValuesForAuth(region, auth.AnonymousCredentials),
 			IsOwner:         false,
 			ObjectName:      object,
 		}) {
@@ -479,7 +492,7 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 				Groups:          cred.Groups,
 				Action:          policy.ListBucketAction,
 				BucketName:      bucket,
-				ConditionValues: getConditionValuesWithTags(r, region, auth.AnonymousCredentials, existingTags, requestTags),
+				ConditionValues: conditionValuesForAuth(region, auth.AnonymousCredentials),
 				IsOwner:         false,
 				ObjectName:      object,
 			}) {
@@ -496,7 +509,7 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 			Groups:          cred.Groups,
 			Action:          policy.Action(policy.DeleteObjectVersionAction),
 			BucketName:      bucket,
-			ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
+			ConditionValues: conditionValuesForAuth("", cred),
 			ObjectName:      object,
 			IsOwner:         owner,
 			Claims:          cred.Claims,
@@ -510,7 +523,7 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 		Groups:          cred.Groups,
 		Action:          action,
 		BucketName:      bucket,
-		ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
+		ConditionValues: conditionValuesForAuth("", cred),
 		ObjectName:      object,
 		IsOwner:         owner,
 		Claims:          cred.Claims,
@@ -527,7 +540,7 @@ func authorizeRequestWithTags(ctx context.Context, r *http.Request, action polic
 			Groups:          cred.Groups,
 			Action:          policy.ListBucketAction,
 			BucketName:      bucket,
-			ConditionValues: getConditionValuesWithTags(r, "", cred, existingTags, requestTags),
+			ConditionValues: conditionValuesForAuth("", cred),
 			ObjectName:      object,
 			IsOwner:         owner,
 			Claims:          cred.Claims,

@@ -198,10 +198,13 @@ func getConditionValuesWithTags(r *http.Request, lc string, cred auth.Credential
 		}
 	}
 
-	vid := r.Form.Get(xhttp.VersionID)
+	// Match the version the object layer will act on: newContext and getOpts both
+	// TrimSpace this value, so leaving it untrimmed here would let a padded
+	// ?versionId=V%20 present a different s3:versionid than the effective version.
+	vid := strings.TrimSpace(r.Form.Get(xhttp.VersionID))
 	if vid == "" {
 		if u, err := url.Parse(r.Header.Get(xhttp.AmzCopySource)); err == nil {
-			vid = u.Query().Get(xhttp.VersionID)
+			vid = strings.TrimSpace(u.Query().Get(xhttp.VersionID))
 		}
 	}
 
@@ -234,9 +237,14 @@ func getConditionValuesWithTags(r *http.Request, lc string, cred auth.Credential
 		"principaltype":    {principalType},
 		"userid":           {username},
 		"username":         {username},
-		"versionid":        {vid},
 		"signatureversion": {signatureVersion},
 		"authType":         {authtype},
+	}
+
+	// Null conditions distinguish an absent key from a present key with an
+	// empty value. Only expose s3:versionid when the request names a version.
+	if vid != "" {
+		args["versionid"] = []string{vid}
 	}
 
 	if lc != "" {
