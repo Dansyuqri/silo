@@ -788,6 +788,22 @@ func (s *xlStorage) getVolDir(volume string) (string, error) {
 	if volume == "" || volume == "." || volume == ".." {
 		return "", errVolumeNotFound
 	}
+	// Reject traversal smuggled inside the volume name itself, e.g. "../" or
+	// "..\", which the equality checks above do not catch.
+	//
+	// This must be evaluated on the raw argument and never on the joined
+	// result: pathJoin() below runs path.Clean() against an absolute
+	// drivePath, and Clean() *erases* leading ".." on an absolute path
+	// ("/drive/../../etc" becomes "/etc"), so a check placed after the join
+	// would silently accept an escaped path.
+	//
+	// This is also the only containment control covering callers that never
+	// reach storageRESTServer.getStorage() - notably the peer-S3 bucket RPCs
+	// (MakeBucket/HeadBucket/DeleteBucket/HealBucket), which drive
+	// MakeVol/StatVol/DeleteVol straight off globalLocalDrivesMap.
+	if hasBadPathComponent(volume) {
+		return "", errVolumeNotFound
+	}
 	volumeDir := pathJoin(s.drivePath, volume)
 	return volumeDir, nil
 }

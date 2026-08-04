@@ -75,6 +75,10 @@ var (
 	storageListDirRPC          = grid.NewStream[*grid.MSS, grid.NoPayload, *ListDirResult](grid.HandlerListDir, grid.NewMSS, nil, func() *ListDirResult { return &ListDirResult{} }).WithOutCapacity(1)
 )
 
+// getStorageViaEndpoint returns the drive UNGUARDED. It is for local callers
+// only, whose arguments the server itself constructed. Anything serving a
+// remote peer must go through storageRESTServer.getStorage(), which wraps this
+// in guardedStorage to reject traversal in wire-supplied paths.
 func getStorageViaEndpoint(endpoint Endpoint) StorageAPI {
 	globalLocalDrivesMu.RLock()
 	defer globalLocalDrivesMu.RUnlock()
@@ -85,7 +89,18 @@ func getStorageViaEndpoint(endpoint Endpoint) StorageAPI {
 }
 
 func (s *storageRESTServer) getStorage() StorageAPI {
-	return getStorageViaEndpoint(s.endpoint)
+	st := getStorageViaEndpoint(s.endpoint)
+	if st == nil {
+		// Must stay an untyped nil. IsAuthValid and checkID compare the result
+		// against nil before authenticating, and a nil interface wrapped in a
+		// value struct does not compare equal to nil - that would turn an
+		// unauthenticated request against a drive that has not come up yet
+		// into a nil dereference.
+		return nil
+	}
+	// Reject traversal in paths carried by request bodies and grid RPC frames,
+	// neither of which the global HTTP middleware can see. See guardedStorage.
+	return guardedStorage{st}
 }
 
 func (s *storageRESTServer) writeErrorResponse(w http.ResponseWriter, err error) {

@@ -69,6 +69,26 @@ func (e ErasureInfo) ShardSize() int64 {
 	return ceilFrac(e.BlockSize, int64(e.DataBlocks))
 }
 
+// HasNegativePartSize reports whether any part claims a negative size.
+//
+// Such metadata is never legitimate, and it is not merely cosmetic: a negative
+// length floors both terms of ShardFileSize to zero, and checkPart's only
+// integrity test is "st.Size() < expectedSize". A zero expectation is therefore
+// satisfied by every file that exists, including a truncated shard, so the part
+// is reported intact and a heal driven by the result skips the repair it should
+// have performed.
+//
+// Note this holds even when the erasure parameters are entirely valid, so
+// FileInfo.IsValid() - the check healing itself trusts - does not catch it.
+func (fi FileInfo) HasNegativePartSize() bool {
+	for _, p := range fi.Parts {
+		if p.Size < 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // IsValid - tells if erasure info fields are valid.
 func (fi FileInfo) IsValid() bool {
 	if fi.Deleted {
