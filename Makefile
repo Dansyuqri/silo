@@ -4,6 +4,7 @@ LDFLAGS := $(shell go run buildscripts/gen-ldflags.go)
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
+GOLANGCI_VERSION ?= v2.11.3
 
 VERSION ?= $(shell git describe --tags)
 REPO ?= quay.io/minio
@@ -23,7 +24,10 @@ help: ## print this help
 
 getdeps: ## fetch necessary dependencies
 	@mkdir -p ${GOPATH}/bin
-	@echo "Installing golangci-lint" && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOLANGCI_DIR)
+	@if [ ! -x "$(GOLANGCI)" ]; then \
+		echo "Installing golangci-lint $(GOLANGCI_VERSION)"; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_VERSION)/install.sh | sh -s -- -b $(GOLANGCI_DIR) $(GOLANGCI_VERSION); \
+	fi
 
 crosscompile: ## cross compile minio
 	@(env bash $(PWD)/buildscripts/cross-compile.sh)
