@@ -469,10 +469,14 @@ func TestCheckPartsMalformedErasure(t *testing.T) {
 		// Deleted short-circuits FileInfo.IsValid() to true, so an IsValid()
 		// guard would not have caught this one.
 		{Volume: "foo", Name: "obj", Deleted: true, Parts: []ObjectPartInfo{{Number: 1, Size: 4}}},
-		{Volume: "foo", Name: "obj", Parts: []ObjectPartInfo{{Number: 1, Size: 4}},
-			Erasure: ErasureInfo{DataBlocks: 4}}, // BlockSize still zero
-		{Volume: "foo", Name: "obj", Parts: []ObjectPartInfo{{Number: 1, Size: 4}},
-			Erasure: ErasureInfo{BlockSize: blockSizeV2}}, // DataBlocks still zero
+		{
+			Volume: "foo", Name: "obj", Parts: []ObjectPartInfo{{Number: 1, Size: 4}},
+			Erasure: ErasureInfo{DataBlocks: 4},
+		}, // BlockSize still zero
+		{
+			Volume: "foo", Name: "obj", Parts: []ObjectPartInfo{{Number: 1, Size: 4}},
+			Erasure: ErasureInfo{BlockSize: blockSizeV2},
+		}, // DataBlocks still zero
 	} {
 		if _, err := restClient.CheckParts(ctx, "foo", "obj", fi); !errors.Is(err, errFileCorrupt) {
 			t.Errorf("CheckParts(%+v): got %v, want %v", fi.Erasure, err, errFileCorrupt)
@@ -584,7 +588,7 @@ func TestDeleteVersionsDeclaredCountIsNotTrusted(t *testing.T) {
 		grew := after.TotalAlloc - before.TotalAlloc
 		t.Logf("total-versions=%s -> err=%v, allocated %d bytes", total, err, grew)
 		// 100000000 * sizeof(FileInfoVersions)(104) is ~9.7 GiB; anything in
-		// that neighbourhood means the declared count is still being trusted.
+		// that neighborhood means the declared count is still being trusted.
 		if grew > 64<<20 {
 			t.Errorf("total-versions=%s allocated %d bytes for an empty body - "+
 				"the declared count is sizing the allocation", total, grew)

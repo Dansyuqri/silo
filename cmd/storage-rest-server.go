@@ -597,11 +597,14 @@ func (s *storageRESTServer) ReadPartsHandler(w http.ResponseWriter, r *http.Requ
 
 	done := keepHTTPResponseAlive(w)
 	infos, err := s.getStorage().ReadParts(r.Context(), volume, preq.Paths...)
-	done(nil)
 	if err != nil {
-		s.writeErrorResponse(w, err)
+		// The keep-alive stream owns the response body from here on, so the
+		// error has to travel through done(); writing a header afterwards is
+		// too late and leaves the client decoding the error text as msgpack.
+		done(err)
 		return
 	}
+	done(nil)
 
 	presp := &ReadPartsResp{Infos: infos}
 	storageLogIf(r.Context(), msgp.Encode(w, presp))

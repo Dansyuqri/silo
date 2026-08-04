@@ -83,9 +83,9 @@ type guardedStorage struct {
 //     short paths used here, so " " and "..." reach the syscall as an empty
 //     component. On Unix they are ordinary filenames and legal object keys.
 //
-// Note the second point is reasoned from documented Win32 behaviour, not from a
+// Note the second point is reasoned from documented Win32 behavior, not from a
 // Windows test run: CI is Linux-only, so TestIsVolumeRootAliasIsPlatformCorrect
-// pins both branches of the predicate rather than the syscall behaviour itself.
+// pins both branches of the predicate rather than the syscall behavior itself.
 func isVolumeRootAlias(p string) bool {
 	return isVolumeRootAliasOn(p, runtime.GOOS == globalWindowsOSName)
 }
@@ -125,7 +125,7 @@ func isVolumeRootAliasOn(p string, windows bool) bool {
 // for them, so they say nothing about whether the metadata is sound.
 //
 // This is the boundary check; ShardFileSize's own zero-value guard stays as the
-// last line of defence against a panic.
+// last line of defense against a panic.
 func guardErasureParams(fi FileInfo) error {
 	// Negative sizes share their rule with the storage layer, which also has to
 	// cope with metadata already on disk; keep the two from drifting apart by

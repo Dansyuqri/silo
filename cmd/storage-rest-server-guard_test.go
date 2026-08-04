@@ -190,13 +190,22 @@ func TestIsVolumeRootAlias(t *testing.T) {
 		want bool
 	}{
 		// Collapse back to the volume directory.
-		{"", true}, {"/", true}, {"//", true},
+		{"", true},
+		{"/", true},
+		{"//", true},
 		// Backslash is platform-dependent; see TestIsVolumeRootAliasIsPlatformCorrect.
 		// Whitespace is NOT a separator. path.Clean leaves it alone, so these
 		// name real directories and are legal S3 object keys.
-		{" ", false}, {"  ", false}, {"\t", false}, {"\n", false},
-		{" / ", false}, {"/ ", false},
-		{"a", false}, {"/a", false}, {"..", false}, {" a ", false},
+		{" ", false},
+		{"  ", false},
+		{"\t", false},
+		{"\n", false},
+		{" / ", false},
+		{"/ ", false},
+		{"a", false},
+		{"/a", false},
+		{"..", false},
+		{" a ", false},
 		{"obj/part.1", false},
 	} {
 		if got := isVolumeRootAlias(tc.path); got != tc.want {
@@ -239,12 +248,19 @@ func TestIsVolumeRootAliasIsPlatformCorrect(t *testing.T) {
 		// Space and period: ordinary filename characters on Unix, but stripped
 		// from a component by Win32 normalisation, so a component made only of
 		// them vanishes and the path resolves to the volume root.
-		{" ", false, true}, {"  ", false, true}, {" / ", false, true},
-		{"...", false, true}, {". .", false, true},
+		{" ", false, true},
+		{"  ", false, true},
+		{" / ", false, true},
+		{"...", false, true},
+		{". .", false, true},
 		// Never an alias anywhere.
-		{"\t", false, false}, {"\n", false, false},
-		{"a", false, false}, {"/a", false, false}, {"a ", false, false},
-		{" a", false, false}, {"a.", false, false},
+		{"\t", false, false},
+		{"\n", false, false},
+		{"a", false, false},
+		{"/a", false, false},
+		{"a ", false, false},
+		{" a", false, false},
+		{"a.", false, false},
 	} {
 		if got := isVolumeRootAliasOn(tc.path, false); got != tc.unix {
 			t.Errorf("isVolumeRootAliasOn(%q, unix) = %v, want %v", tc.path, got, tc.unix)
