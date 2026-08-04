@@ -29,6 +29,15 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Verify clean checkout
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Refusing to release from a dirty working tree:" >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+
       - name: Compute release variables
         run: |
           set -euo pipefail
@@ -83,6 +92,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LDFLAGS: ${{ env.LDFLAGS }}
           PKG_VERSION: ${{ env.PKG_VERSION }}
+
+      - name: Verify binary provenance stamps
+        run: |
+          set -euo pipefail
+          buildscripts/verify-build-provenance.sh
 
       - name: Install nFPM
         run: |

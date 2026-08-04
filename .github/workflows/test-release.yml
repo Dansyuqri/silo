@@ -5,10 +5,16 @@ on:
   pull_request:
     paths:
       - ".github/goreleaser.yml"
+      - ".github/nfpm.yml"
       - "Dockerfile.goreleaser"
       - "minio.service"
+      - "buildscripts/package-release.sh"
+      - "buildscripts/sign-release-rpms.sh"
+      - "buildscripts/verify-build-provenance.sh"
+      - "buildscripts/gen-ldflags.go"
       - ".github/workflows/release.yml"
       - ".github/workflows/test-release.yml"
+      - ".gitignore"
 
 permissions:
   contents: read
@@ -35,9 +41,11 @@ jobs:
           VERSION_COLON="2026-02-14T12:00:00Z"
           PKG_VERSION="20260214120000.0.0"
           LDFLAGS="$(MINIO_RELEASE=RELEASE go run buildscripts/gen-ldflags.go "${VERSION_COLON}")"
-          echo "RELEASE_TAG=${RELEASE_TAG}" >> "${GITHUB_ENV}"
-          echo "PKG_VERSION=${PKG_VERSION}" >> "${GITHUB_ENV}"
-          echo "LDFLAGS=${LDFLAGS}" >> "${GITHUB_ENV}"
+          {
+            echo "RELEASE_TAG=${RELEASE_TAG}"
+            echo "PKG_VERSION=${PKG_VERSION}"
+            echo "LDFLAGS=${LDFLAGS}"
+          } >> "${GITHUB_ENV}"
           echo "PKG_VERSION: ${PKG_VERSION}"
           echo "LDFLAGS: ${LDFLAGS}"
 
@@ -56,27 +64,61 @@ jobs:
           LDFLAGS: ${{ env.LDFLAGS }}
           PKG_VERSION: ${{ env.PKG_VERSION }}
 
-      - name: Install nFPM
+      - name: Verify binary provenance stamps
+        run: |
+          set -euo pipefail
+          buildscripts/verify-build-provenance.sh
+
+      - name: Install package validation tools
         run: |
           set -euo pipefail
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+          sudo apt-get update
+          sudo apt-get install --yes rpm binutils
 
       - name: Package snapshot binaries with nFPM
         run: |
           set -euo pipefail
           buildscripts/package-release.sh
 
-      - name: Verify package metadata
-        working-directory: dist/packages
+      - name: Validate package names, checksums, metadata, and payload
         run: |
           set -euo pipefail
+          cd dist/packages
+
+          # These are the public download names; a drift here breaks every
+          # script that fetches packages by URL.
+          expected=(
+            "minio-${PKG_VERSION}-1.aarch64.rpm"
+            "minio-${PKG_VERSION}-1.x86_64.rpm"
+            "minio_${PKG_VERSION}_aarch64.apk"
+            "minio_${PKG_VERSION}_amd64.deb"
+            "minio_${PKG_VERSION}_arm64.deb"
+            "minio_${PKG_VERSION}_x86_64.apk"
+          )
+
+          for package in "${expected[@]}"; do
+            test -s "${package}"
+            test -s "${package}.sha256sum"
+            sha256sum --check "${package}.sha256sum"
+          done
+
+          test "$(find . -maxdepth 1 -type f \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' \) | wc -l)" -eq 6
 
           # The signing script asserts these same values, but it runs on the
           # maintainer's machine after the release workflow has already built
           # and uploaded. Take its expectations as the single source of truth
           # so nfpm.yml and the signing script cannot drift apart without
           # failing here first, while a fix is still cheap.
+          #
+          # This grep is deliberately limited to the seven identity variables,
+          # all of which are single-line. That is what makes the eval safe:
+          # should one ever become multi-line, the grep captures an
+          # unterminated quote and the eval aborts on a syntax error under
+          # set -e rather than quietly binding an empty value and comparing
+          # against nothing. expected_payload is multi-line by design and must
+          # stay out of this set for the same reason.
           eval "$(grep -E '^expected_(vendor|packager|url|summary|description|license|group)=' \
             ../../buildscripts/sign-release-rpms.sh)"
           for value in "${expected_vendor}" "${expected_packager}" "${expected_url}" \
@@ -84,6 +126,8 @@ jobs:
                        "${expected_license}" "${expected_group}"; do
             test -n "${value}"
           done
+
+          service_sha="$(sha256sum ../../minio.service | awk '{print $1}')"
 
           rpm_file="minio-${PKG_VERSION}-1.x86_64.rpm"
           test "$(rpm -qp --queryformat '%{VENDOR}' "${rpm_file}")" = "${expected_vendor}"
@@ -98,6 +142,7 @@ jobs:
           # nothing to start it.
           rpm -qpl "${rpm_file}" | grep -Fx '/usr/local/bin/minio'
           rpm -qpl "${rpm_file}" | grep -Fx '/lib/systemd/system/minio.service'
+          test "$(rpm -qpl "${rpm_file}" | wc -l)" -eq 2
 
           deb_file="minio_${PKG_VERSION}_amd64.deb"
           test "$(dpkg-deb --field "${deb_file}" Maintainer)" = "${expected_packager}"
@@ -116,5 +161,64 @@ jobs:
           grep -Fx "license = ${expected_license}" <<< "${apk_info}"
           grep -Fx "pkgdesc = ${expected_description}" <<< "${apk_info}"
           tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'usr/local/bin/minio'
+          tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'lib/systemd/system/minio.service'
+
+          for arch in amd64 arm64; do
+            if [ "${arch}" = amd64 ]; then
+              rpm_arch=x86_64
+              deb_arch=amd64
+              apk_arch=x86_64
+            else
+              rpm_arch=aarch64
+              deb_arch=arm64
+              apk_arch=aarch64
+            fi
+
+            test "$(rpm -qp --queryformat '%{ARCH}' "minio-${PKG_VERSION}-1.${rpm_arch}.rpm")" = "${rpm_arch}"
+            test "$(dpkg-deb --field "minio_${PKG_VERSION}_${deb_arch}.deb" Architecture)" = "${deb_arch}"
+            grep -Fx "arch = ${apk_arch}" <<< "$(tar -xOzf "minio_${PKG_VERSION}_${apk_arch}.apk" .PKGINFO)"
+
+            # Accepted weakness: this takes the first match, unsorted, where
+            # find_binary in package-release.sh demands exactly one. It cannot
+            # be reached with an ambiguous match today, because packaging runs
+            # earlier in this same job and hard-fails on one. Revisit if
+            # goamd64 gains a second level, or if find_binary's exactly-one
+            # contract is ever relaxed -- at that point this weak copy would be
+            # the only one left choosing silently.
+            source_binary="$(find .. -maxdepth 2 -type f -path "../minio_linux_${arch}*/minio" | head -n 1)"
+            source_sha="$(sha256sum "${source_binary}" | awk '{print $1}')"
+
+            # Do not pipe rpm2cpio here: Debian's build exits non-zero even when
+            # it writes a correct payload, which trips `set -o pipefail`. Use
+            # rpm's own digests instead -- -K checks the payload against the
+            # header, and FILEDIGESTS is the sha256 rpm itself verifies on
+            # install.
+            rpm -K "minio-${PKG_VERSION}-1.${rpm_arch}.rpm"
+            rpm_sha="$(rpm -qp --queryformat '[%{FILENAMES} %{FILEDIGESTS}\n]' \
+              "minio-${PKG_VERSION}-1.${rpm_arch}.rpm" | awk '$1 == "/usr/local/bin/minio" { print $2 }')"
+            rpm_service_sha="$(rpm -qp --queryformat '[%{FILENAMES} %{FILEDIGESTS}\n]' \
+              "minio-${PKG_VERSION}-1.${rpm_arch}.rpm" | awk '$1 == "/lib/systemd/system/minio.service" { print $2 }')"
+            deb_sha="$(ar p "minio_${PKG_VERSION}_${deb_arch}.deb" data.tar.gz | tar -xzOf - ./usr/local/bin/minio | sha256sum | awk '{print $1}')"
+            deb_service_sha="$(ar p "minio_${PKG_VERSION}_${deb_arch}.deb" data.tar.gz | tar -xzOf - ./lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
+            apk_sha="$(tar -xzOf "minio_${PKG_VERSION}_${apk_arch}.apk" usr/local/bin/minio | sha256sum | awk '{print $1}')"
+            apk_service_sha="$(tar -xzOf "minio_${PKG_VERSION}_${apk_arch}.apk" lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
+
+            test "${source_sha}" = "${rpm_sha}"
+            test "${source_sha}" = "${deb_sha}"
+            test "${source_sha}" = "${apk_sha}"
+            test "${service_sha}" = "${rpm_service_sha}"
+            test "${service_sha}" = "${deb_service_sha}"
+            test "${service_sha}" = "${apk_service_sha}"
+          done
 
           find . -maxdepth 1 -type f | sort
+
+      - name: Validate release scripts
+        run: |
+          set -euo pipefail
+          bash -n buildscripts/package-release.sh
+          bash -n buildscripts/sign-release-rpms.sh
+          bash -n buildscripts/verify-build-provenance.sh
+          test -x buildscripts/package-release.sh
+          test -x buildscripts/sign-release-rpms.sh
+          test -x buildscripts/verify-build-provenance.sh
