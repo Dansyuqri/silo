@@ -84,49 +84,24 @@ jobs:
           LDFLAGS: ${{ env.LDFLAGS }}
           PKG_VERSION: ${{ env.PKG_VERSION }}
 
-      - name: Install pkger
+      - name: Install nFPM
         run: |
-          go install github.com/minio/pkger/v2@v2.6.18
+          set -euo pipefail
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
-      - name: Prepare package layout
+      - name: Build nFPM packages
         run: |
           set -euo pipefail
-          copy_binary() {
-            local arch="$1"
-            local pattern="$2"
-            local src
-            src="$(find dist -maxdepth 2 -type f -path "dist/${pattern}/minio" | head -n1 || true)"
-            if [ -z "${src}" ]; then
-              echo "Missing GoReleaser binary for ${arch} (${pattern})"
-              exit 1
-            fi
-            mkdir -p "dist/linux-${arch}"
-            cp "${src}" "dist/linux-${arch}/minio.${RELEASE_TAG}"
-          }
+          buildscripts/package-release.sh
 
-          copy_binary amd64 "minio_linux_amd64*"
-          copy_binary arm64 "minio_linux_arm64*"
-
-      - name: Build standard pkger packages
-        run: |
-          set -euo pipefail
-          pkger -r "${RELEASE_TAG}" --appName minio --releaseDir dist --ignore
-
-          # Keep only full package files; drop convenience symlinks (minio.rpm/minio.deb/minio.apk)
-          find dist/linux-* -maxdepth 1 -type l \
-            \( -name 'minio.rpm' -o -name 'minio.deb' -o -name 'minio.apk' \) -delete
-
-          find dist -maxdepth 2 -type f \
-            \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' -o -name '*.sha256sum' -o -name 'downloads-minio.json' \) | sort
-
-      - name: Upload pkger artifacts to Draft release
+      - name: Upload nFPM packages to Draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mapfile -t files < <(find dist -maxdepth 2 -type f \
-            \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' -o -name '*.sha256sum' -o -name 'downloads-minio.json' \) | sort)
+          mapfile -t files < <(find dist/packages -maxdepth 1 -type f \
+            \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' -o -name '*.sha256sum' \) | sort)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No packages were generated."
             exit 1

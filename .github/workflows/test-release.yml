@@ -56,34 +56,65 @@ jobs:
           LDFLAGS: ${{ env.LDFLAGS }}
           PKG_VERSION: ${{ env.PKG_VERSION }}
 
-      - name: Install pkger
-        run: |
-          go install github.com/minio/pkger/v2@v2.6.18
-          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
-
-      - name: Package snapshot binaries with pkger
+      - name: Install nFPM
         run: |
           set -euo pipefail
-          copy_binary() {
-            local arch="$1"
-            local pattern="$2"
-            local src
-            src="$(find dist -maxdepth 2 -type f -path "dist/${pattern}/minio" | head -n1 || true)"
-            if [ -z "${src}" ]; then
-              echo "Missing GoReleaser binary for ${arch} (${pattern})"
-              exit 1
-            fi
-            mkdir -p "dist/linux-${arch}"
-            cp "${src}" "dist/linux-${arch}/minio.${RELEASE_TAG}"
-          }
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
-          copy_binary amd64 "minio_linux_amd64*"
-          copy_binary arm64 "minio_linux_arm64*"
-          pkger -r "${RELEASE_TAG}" --appName minio --releaseDir dist --ignore
+      - name: Package snapshot binaries with nFPM
+        run: |
+          set -euo pipefail
+          buildscripts/package-release.sh
 
-          # Keep only full package files; drop convenience symlinks (minio.rpm/minio.deb/minio.apk)
-          find dist/linux-* -maxdepth 1 -type l \
-            \( -name 'minio.rpm' -o -name 'minio.deb' -o -name 'minio.apk' \) -delete
+      - name: Verify package metadata
+        working-directory: dist/packages
+        run: |
+          set -euo pipefail
 
-          find dist -maxdepth 2 -type f \
-            \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' -o -name '*.sha256sum' -o -name 'downloads-minio.json' \) | sort
+          # The signing script asserts these same values, but it runs on the
+          # maintainer's machine after the release workflow has already built
+          # and uploaded. Take its expectations as the single source of truth
+          # so nfpm.yml and the signing script cannot drift apart without
+          # failing here first, while a fix is still cheap.
+          eval "$(grep -E '^expected_(vendor|packager|url|summary|description|license|group)=' \
+            ../../buildscripts/sign-release-rpms.sh)"
+          for value in "${expected_vendor}" "${expected_packager}" "${expected_url}" \
+                       "${expected_summary}" "${expected_description}" \
+                       "${expected_license}" "${expected_group}"; do
+            test -n "${value}"
+          done
+
+          rpm_file="minio-${PKG_VERSION}-1.x86_64.rpm"
+          test "$(rpm -qp --queryformat '%{VENDOR}' "${rpm_file}")" = "${expected_vendor}"
+          test "$(rpm -qp --queryformat '%{PACKAGER}' "${rpm_file}")" = "${expected_packager}"
+          test "$(rpm -qp --queryformat '%{URL}' "${rpm_file}")" = "${expected_url}"
+          test "$(rpm -qp --queryformat '%{SUMMARY}' "${rpm_file}")" = "${expected_summary}"
+          test "$(rpm -qp --queryformat '%{DESCRIPTION}' "${rpm_file}")" = "${expected_description}"
+          test "$(rpm -qp --queryformat '%{LICENSE}' "${rpm_file}")" = "${expected_license}"
+          test "$(rpm -qp --queryformat '%{GROUP}' "${rpm_file}")" = "${expected_group}"
+          # Both payload entries: the unit file is as much a part of the
+          # package as the binary, and losing it would install a server with
+          # nothing to start it.
+          rpm -qpl "${rpm_file}" | grep -Fx '/usr/local/bin/minio'
+          rpm -qpl "${rpm_file}" | grep -Fx '/lib/systemd/system/minio.service'
+
+          deb_file="minio_${PKG_VERSION}_amd64.deb"
+          test "$(dpkg-deb --field "${deb_file}" Maintainer)" = "${expected_packager}"
+          test "$(dpkg-deb --field "${deb_file}" Version)" = "${PKG_VERSION}"
+          test "$(dpkg-deb --field "${deb_file}" License)" = "${expected_license}"
+          test "$(dpkg-deb --field "${deb_file}" Section)" = "utils"
+          test "$(dpkg-deb --field "${deb_file}" Homepage)" = "${expected_url}"
+          test "$(dpkg-deb --field "${deb_file}" Description)" = "${expected_description}"
+          dpkg-deb --contents "${deb_file}" | grep -E 'usr/local/bin/minio$'
+          dpkg-deb --contents "${deb_file}" | grep -E 'lib/systemd/system/minio\.service$'
+
+          apk_info="$(tar -xOzf "minio_${PKG_VERSION}_x86_64.apk" .PKGINFO)"
+          grep -Fx "pkgver = ${PKG_VERSION}" <<< "${apk_info}"
+          grep -Fx "url = ${expected_url}" <<< "${apk_info}"
+          grep -Fx "maintainer = ${expected_packager}" <<< "${apk_info}"
+          grep -Fx "license = ${expected_license}" <<< "${apk_info}"
+          grep -Fx "pkgdesc = ${expected_description}" <<< "${apk_info}"
+          tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'usr/local/bin/minio'
+
+          find . -maxdepth 1 -type f | sort

@@ -1,0 +1,38 @@
+name: minio
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+version_schema: none
+release: ${NFPM_RELEASE}
+section: utils
+priority: optional
+maintainer: "Ruohang Feng (@Vonng) <rh@vonng.com>"
+description: S3-Interface Libre Object Storage, Community-maintained MinIO server fork.
+vendor: PGSTY
+homepage: https://silo.pgsty.com
+license: AGPL-3.0-or-later
+
+contents:
+  - src: ${NFPM_SOURCE}
+    dst: /usr/local/bin/minio
+    expand: true
+    file_info:
+      mode: 0755
+      owner: root
+      group: root
+  - src: ${NFPM_UNIT}
+    dst: /lib/systemd/system/minio.service
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+
+rpm:
+  group: Applications/File
+  compression: gzip:9
+
+deb:
+  compression: gzip
+  fields:
+    License: AGPL-3.0-or-later

@@ -2,16 +2,17 @@
 
 set -euo pipefail
 
+# These are the single source of truth for the package identity: .github/nfpm.yml
+# must agree with them, and test-release.yml asserts that it does. Drift the
+# other way round would only surface here, on the maintainer's machine, after
+# the build has already run and uploaded.
 expected_fingerprint="9592A7BC7A682E7333376E09E7935D8DB9BD8B20"
-expected_vendor="MinIO, Inc."
-expected_packager="MinIO Development <dev@minio.io>"
-expected_url="https://min.io"
-expected_summary="MinIO is a High Performance Object Storage released under AGPLv3."
-expected_description="MinIO is a High Performance Object Storage released under AGPLv3.
-It is API compatible with Amazon S3 cloud storage service. Use MinIO to build
-high performance infrastructure for machine learning, analytics and application
-data workloads."
-expected_license="AGPLv3"
+expected_vendor="PGSTY"
+expected_packager="Ruohang Feng (@Vonng) <rh@vonng.com>"
+expected_url="https://silo.pgsty.com"
+expected_summary="S3-Interface Libre Object Storage, Community-maintained MinIO server fork."
+expected_description="S3-Interface Libre Object Storage, Community-maintained MinIO server fork."
+expected_license="AGPL-3.0-or-later"
 expected_group="Applications/File"
 expected_payload="/lib/systemd/system/minio.service
 /usr/local/bin/minio"
