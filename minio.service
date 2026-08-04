@@ -39,5 +39,3 @@ SendSIGKILL=no
 
 [Install]
 WantedBy=multi-user.target
-
-# Built for ${project.name}-${project.version} (${project.name})

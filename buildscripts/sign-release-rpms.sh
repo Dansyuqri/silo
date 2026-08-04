@@ -14,7 +14,7 @@ expected_summary="S3-Interface Libre Object Storage, Community-maintained MinIO 
 expected_description="S3-Interface Libre Object Storage, Community-maintained MinIO server fork."
 expected_license="AGPL-3.0-or-later"
 expected_group="Applications/File"
-expected_payload="/lib/systemd/system/minio.service
+expected_payload="/usr/lib/systemd/system/minio.service
 /usr/local/bin/minio"
 repository="${GH_REPO:-pgsty/minio}"
 container="${DNFUPDATE_CONTAINER:-dnfupdate}"

@@ -141,7 +141,7 @@ jobs:
           # package as the binary, and losing it would install a server with
           # nothing to start it.
           rpm -qpl "${rpm_file}" | grep -Fx '/usr/local/bin/minio'
-          rpm -qpl "${rpm_file}" | grep -Fx '/lib/systemd/system/minio.service'
+          rpm -qpl "${rpm_file}" | grep -Fx '/usr/lib/systemd/system/minio.service'
           test "$(rpm -qpl "${rpm_file}" | wc -l)" -eq 2
 
           deb_file="minio_${PKG_VERSION}_amd64.deb"
@@ -152,7 +152,7 @@ jobs:
           test "$(dpkg-deb --field "${deb_file}" Homepage)" = "${expected_url}"
           test "$(dpkg-deb --field "${deb_file}" Description)" = "${expected_description}"
           dpkg-deb --contents "${deb_file}" | grep -E 'usr/local/bin/minio$'
-          dpkg-deb --contents "${deb_file}" | grep -E 'lib/systemd/system/minio\.service$'
+          dpkg-deb --contents "${deb_file}" | grep -E 'usr/lib/systemd/system/minio\.service$'
 
           apk_info="$(tar -xOzf "minio_${PKG_VERSION}_x86_64.apk" .PKGINFO)"
           grep -Fx "pkgver = ${PKG_VERSION}" <<< "${apk_info}"
@@ -161,7 +161,7 @@ jobs:
           grep -Fx "license = ${expected_license}" <<< "${apk_info}"
           grep -Fx "pkgdesc = ${expected_description}" <<< "${apk_info}"
           tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'usr/local/bin/minio'
-          tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'lib/systemd/system/minio.service'
+          tar -tzf "minio_${PKG_VERSION}_x86_64.apk" | grep -Fx 'usr/lib/systemd/system/minio.service'
 
           for arch in amd64 arm64; do
             if [ "${arch}" = amd64 ]; then
@@ -197,11 +197,11 @@ jobs:
             rpm_sha="$(rpm -qp --queryformat '[%{FILENAMES} %{FILEDIGESTS}\n]' \
               "minio-${PKG_VERSION}-1.${rpm_arch}.rpm" | awk '$1 == "/usr/local/bin/minio" { print $2 }')"
             rpm_service_sha="$(rpm -qp --queryformat '[%{FILENAMES} %{FILEDIGESTS}\n]' \
-              "minio-${PKG_VERSION}-1.${rpm_arch}.rpm" | awk '$1 == "/lib/systemd/system/minio.service" { print $2 }')"
+              "minio-${PKG_VERSION}-1.${rpm_arch}.rpm" | awk '$1 == "/usr/lib/systemd/system/minio.service" { print $2 }')"
             deb_sha="$(ar p "minio_${PKG_VERSION}_${deb_arch}.deb" data.tar.gz | tar -xzOf - ./usr/local/bin/minio | sha256sum | awk '{print $1}')"
-            deb_service_sha="$(ar p "minio_${PKG_VERSION}_${deb_arch}.deb" data.tar.gz | tar -xzOf - ./lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
+            deb_service_sha="$(ar p "minio_${PKG_VERSION}_${deb_arch}.deb" data.tar.gz | tar -xzOf - ./usr/lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
             apk_sha="$(tar -xzOf "minio_${PKG_VERSION}_${apk_arch}.apk" usr/local/bin/minio | sha256sum | awk '{print $1}')"
-            apk_service_sha="$(tar -xzOf "minio_${PKG_VERSION}_${apk_arch}.apk" lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
+            apk_service_sha="$(tar -xzOf "minio_${PKG_VERSION}_${apk_arch}.apk" usr/lib/systemd/system/minio.service | sha256sum | awk '{print $1}')"
 
             test "${source_sha}" = "${rpm_sha}"
             test "${source_sha}" = "${deb_sha}"

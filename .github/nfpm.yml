@@ -21,7 +21,7 @@ contents:
       owner: root
       group: root
   - src: ${NFPM_UNIT}
-    dst: /lib/systemd/system/minio.service
+    dst: /usr/lib/systemd/system/minio.service
     expand: true
     file_info:
       mode: 0644
