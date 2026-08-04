@@ -10,6 +10,11 @@ replace github.com/minio/console => github.com/georgmangold/console v1.9.1
 // See: https://github.com/pgsty/minio/issues/15
 replace github.com/minio/pkg/v3 => github.com/pgsty/minio-pkg/v3 v3.6.3
 
+// v22.7.0 does not compile on NetBSD because its unix implementation uses
+// CLOCK_MONOTONIC, which is unavailable there. Keep the last portable release
+// until go-systemd ships the upstream fix.
+replace github.com/coreos/go-systemd/v22 => github.com/coreos/go-systemd/v22 v22.6.0
+
 // Install tools using 'go install tool'.
 tool (
 	github.com/tinylib/msgp
@@ -134,7 +139,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/antithesishq/antithesis-sdk-go v0.6.0-default-no-op // indirect
-	github.com/apache/thrift v0.23.0 // indirect
+	github.com/apache/thrift v0.24.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/charmbracelet/bubbles v1.0.0 // indirect
