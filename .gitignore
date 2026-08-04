@@ -55,7 +55,6 @@ xattr
 xl-meta
 
 .gitignore
-.goreleaser.yml
 
 dist/
 
