@@ -1,0 +1,170 @@
+name: Publish Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Published RELEASE.* tag to package as pgsty/minio"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # Images are built from a published release rather than from the build
+      # that produced it, so an abandoned draft can never leave :latest
+      # pointing at something nobody shipped.
+      - name: Validate published release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_TAG}"
+          VERSION_HYPHEN="${TAG#RELEASE.}"
+          PKG_VERSION="$(echo "${VERSION_HYPHEN}" | sed -E 's/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2})-([0-9]{2})-([0-9]{2})Z$/\1\2\3\4\5\6.0.0/')"
+          if [ "${PKG_VERSION}" = "${VERSION_HYPHEN}" ]; then
+            echo "Invalid release tag: ${TAG}"
+            exit 1
+          fi
+
+          IS_DRAFT="$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft --jq .isDraft)"
+          IS_PRERELEASE="$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isPrerelease --jq .isPrerelease)"
+          PUBLISHED_AT="$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json publishedAt --jq .publishedAt)"
+          LATEST_TAG="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName --jq .tagName)"
+
+          if [ "${IS_DRAFT}" != false ] || [ "${IS_PRERELEASE}" != false ] || [ -z "${PUBLISHED_AT}" ]; then
+            echo "${TAG} must be a published, non-prerelease GitHub Release"
+            exit 1
+          fi
+          # This workflow moves :latest, so it must not run for an older tag.
+          if [ "${TAG}" != "${LATEST_TAG}" ]; then
+            echo "Refusing to replace Docker latest with non-latest release ${TAG} (latest is ${LATEST_TAG})"
+            exit 1
+          fi
+
+          {
+            echo "RELEASE_TAG=${TAG}"
+            echo "PKG_VERSION=${PKG_VERSION}"
+            echo "PUBLISHED_AT=${PUBLISHED_AT}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Validate Docker Hub credentials
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "Missing Docker Hub credentials. Set DOCKERHUB_USERNAME and DOCKERHUB_TOKEN repository secrets."
+            exit 1
+          fi
+
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Prepare verified Docker contexts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          assets_dir="docker-release/assets"
+          mkdir -p "${assets_dir}"
+
+          amd64_archive="minio_${PKG_VERSION}_linux_amd64.tar.gz"
+          arm64_archive="minio_${PKG_VERSION}_linux_arm64.tar.gz"
+          checksums="minio_${PKG_VERSION}_checksums.txt"
+          gh release download "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --dir "${assets_dir}" \
+            --pattern "${amd64_archive}" \
+            --pattern "${arm64_archive}" \
+            --pattern "${checksums}"
+
+          # The binaries going into the images are the published ones, checked
+          # against the published checksums, not a rebuild that merely ought to
+          # match them.
+          cd "${assets_dir}"
+          grep -F "  ${amd64_archive}" "${checksums}" | sha256sum --check
+          grep -F "  ${arm64_archive}" "${checksums}" | sha256sum --check
+          cd "${GITHUB_WORKSPACE}"
+
+          # Dockerfile.goreleaser expects the binary at the context root and
+          # the entrypoint scripts under dockerscripts/, which is the layout
+          # GoReleaser used to assemble via extra_files.
+          for arch in amd64 arm64; do
+            context="docker-release/${arch}"
+            archive="${assets_dir}/minio_${PKG_VERSION}_linux_${arch}.tar.gz"
+            mkdir -p "${context}/dockerscripts"
+            tar -xzf "${archive}" -C "${context}" minio
+            cp Dockerfile.goreleaser LICENSE CREDITS "${context}/"
+            cp dockerscripts/docker-entrypoint.sh dockerscripts/download-static-curl.sh \
+              "${context}/dockerscripts/"
+          done
+
+          echo "RELEASE_REVISION=$(git rev-parse HEAD)" >> "${GITHUB_ENV}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: docker-release/amd64
+          file: docker-release/amd64/Dockerfile.goreleaser
+          platforms: linux/amd64
+          push: true
+          tags: |
+            pgsty/minio:${{ env.RELEASE_TAG }}-amd64
+            pgsty/minio:latest-amd64
+          labels: |
+            org.opencontainers.image.version=${{ env.RELEASE_TAG }}
+            org.opencontainers.image.created=${{ env.PUBLISHED_AT }}
+            org.opencontainers.image.revision=${{ env.RELEASE_REVISION }}
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: docker-release/arm64
+          file: docker-release/arm64/Dockerfile.goreleaser
+          platforms: linux/arm64
+          push: true
+          tags: |
+            pgsty/minio:${{ env.RELEASE_TAG }}-arm64
+            pgsty/minio:latest-arm64
+          labels: |
+            org.opencontainers.image.version=${{ env.RELEASE_TAG }}
+            org.opencontainers.image.created=${{ env.PUBLISHED_AT }}
+            org.opencontainers.image.revision=${{ env.RELEASE_REVISION }}
+
+      - name: Publish multi-architecture manifests
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "pgsty/minio:${RELEASE_TAG}" \
+            "pgsty/minio:${RELEASE_TAG}-amd64" \
+            "pgsty/minio:${RELEASE_TAG}-arm64"
+          docker buildx imagetools create \
+            --tag "pgsty/minio:latest" \
+            "pgsty/minio:latest-amd64" \
+            "pgsty/minio:latest-arm64"
+          docker buildx imagetools inspect "pgsty/minio:${RELEASE_TAG}"
+          docker buildx imagetools inspect "pgsty/minio:latest"
