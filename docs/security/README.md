@@ -2,6 +2,8 @@
 
 For fork-specific security advisories and upgrade notes in `pgsty/minio`, see [advisories.md](advisories.md).
 
+For which peers may tell the server where a request came from — and therefore whether `aws:SourceIp` conditions and audit client addresses can be relied on — see [Client source address trust](source-address-trust.md).
+
 ## Server-Side Encryption
 
 MinIO supports two different types of server-side encryption ([SSE](#sse)):

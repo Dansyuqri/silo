@@ -54,6 +54,7 @@ import (
 	"github.com/minio/minio/internal/auth"
 	"github.com/minio/minio/internal/color"
 	"github.com/minio/minio/internal/config"
+	"github.com/minio/minio/internal/handlers"
 	"github.com/minio/minio/internal/kms"
 	"github.com/minio/minio/internal/logger"
 	"github.com/minio/pkg/v3/certs"
@@ -711,6 +712,16 @@ func serverHandleEarlyEnvVars() {
 
 func serverHandleEnvVars() {
 	var err error
+
+	// Re-read the source-address trust policy now that loadEnvVarsFromFiles has
+	// run: a policy taken at package initialisation would miss every deployment
+	// configured through MINIO_CONFIG_ENV_FILE. Refuse to start on a malformed
+	// allow-list rather than resolve aws:SourceIp and every audit client address
+	// by a rule the operator did not write.
+	if err := handlers.ConfigureSourceIPTrust(); err != nil {
+		logger.Fatal(err, "Invalid %s value in environment variable", handlers.EnvTrustedProxies)
+	}
+
 	if globalBrowserEnabled {
 		if redirectURL := env.Get(config.EnvBrowserRedirectURL, ""); redirectURL != "" {
 			u, err := xnet.ParseHTTPURL(redirectURL)

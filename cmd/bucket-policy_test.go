@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -317,6 +318,104 @@ func TestBucketPolicySourceIPCannotBeForged(t *testing.T) {
 	}
 }
 
+// The trust policy has to reach the decision, not merely the resolver. This
+// drives a forged X-Forwarded-For all the way through getConditionValues into a
+// real IpAddress evaluation under each mode. Everything else about the trust
+// modes is tested where the logic lives; this is the only test that would notice
+// if the resolver were correct but the policy engine were reading something else.
+func TestBucketPolicySourceIPForgeryAcrossTrustModes(t *testing.T) {
+	_, cidr, err := net.ParseCIDR("10.0.0.0/8")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn, err := condition.NewIPAddressFunc(condition.AWSSourceIP.ToKey(), cidr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bp := policy.BucketPolicy{
+		Version: policy.DefaultVersion,
+		Statements: []policy.BPStatement{{
+			Effect:     policy.Allow,
+			Principal:  policy.NewPrincipal("*"),
+			Actions:    policy.NewActionSet(policy.GetObjectAction),
+			Resources:  policy.NewResourceSet(policy.NewResource("bkt/*")),
+			Conditions: condition.NewFunctions(fn),
+		}},
+	}
+
+	// An address inside the permitted range, asserted by a client that is not.
+	const forgedClaim = "10.1.2.3"
+	const outsider = "203.0.113.5:12345"
+	const proxy = "192.0.2.7:9000"
+
+	tests := []struct {
+		name    string
+		proxies string
+		peer    string
+		allowed bool
+	}{{
+		// Documented, and the reason the allow-list exists.
+		name:    "default mode believes the claim",
+		peer:    outsider,
+		allowed: true,
+	}, {
+		name:    "trusting nobody ignores the claim",
+		proxies: handlers.TrustNoProxies,
+		peer:    outsider,
+		allowed: false,
+	}, {
+		name:    "allow-list ignores an unlisted peer's claim",
+		proxies: "192.0.2.7",
+		peer:    outsider,
+		allowed: false,
+	}, {
+		// The allow-list must not break the deployment it exists to serve.
+		name:    "allow-list still honors its own proxy",
+		proxies: "192.0.2.7",
+		peer:    proxy,
+		allowed: true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(func() {
+				os.Unsetenv(handlers.EnvTrustedProxies)
+				if err := handlers.ConfigureSourceIPTrust(); err != nil {
+					t.Fatalf("restoring the default policy: %v", err)
+				}
+			})
+			if tt.proxies == "" {
+				os.Unsetenv(handlers.EnvTrustedProxies)
+			} else {
+				t.Setenv(handlers.EnvTrustedProxies, tt.proxies)
+			}
+			if err := handlers.ConfigureSourceIPTrust(); err != nil {
+				t.Fatalf("configuring %q: %v", tt.proxies, err)
+			}
+
+			r, err := http.NewRequest(http.MethodGet, "http://minio.local/bkt/obj", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r.RemoteAddr = tt.peer
+			r.Header.Set("X-Forwarded-For", forgedClaim)
+			if err := r.ParseForm(); err != nil {
+				t.Fatal(err)
+			}
+
+			got := bp.IsAllowed(policy.BucketPolicyArgs{
+				Action:          policy.GetObjectAction,
+				BucketName:      "bkt",
+				ObjectName:      "obj",
+				ConditionValues: getConditionValues(r, "us-east-1", auth.Credentials{AccessKey: "lowpriv"}),
+			})
+			if got != tt.allowed {
+				t.Errorf("IsAllowed = %v, want %v (peer %s claiming %s)", got, tt.allowed, tt.peer, forgedClaim)
+			}
+		})
+	}
+}
+
 // aws:SourceIp must be whatever the hardened resolver decided and nothing else.
 // The resolver is where the forwarded-header trust policy is enforced and where
 // its three modes are tested (internal/handlers/proxy_test.go); this pins the
@@ -327,7 +426,9 @@ func TestBucketPolicySourceIPCannotBeForged(t *testing.T) {
 // each of the three forwarded headers still sets aws:SourceIp, and so an
 // IpAddress condition is only as good as the network path to the API port.
 // Enforcing such a condition against a client with direct access requires
-// MINIO_API_TRUSTED_PROXIES or _MINIO_API_XFF_HEADER=off.
+// MINIO_API_TRUSTED_PROXIES. Note that _MINIO_API_XFF_HEADER=off does not
+// achieve it: the loop below covers all three headers precisely because
+// suppressing one of them only moves the answer to the next.
 func TestGetConditionValuesSourceIPMatchesResolver(t *testing.T) {
 	for _, header := range []map[string]string{
 		nil,
