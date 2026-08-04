@@ -21,6 +21,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Build the code at the tag being released, not whatever branch the
+          # dispatch ran from. On a tag push this is the tag ref already; on
+          # workflow_dispatch it pins the checkout to the requested tag so the
+          # artifacts cannot be built from one ref and published under another.
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
