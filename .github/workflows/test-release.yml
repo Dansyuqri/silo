@@ -7,6 +7,7 @@ on:
       - ".github/goreleaser.yml"
       - ".github/nfpm.yml"
       - "Dockerfile.goreleaser"
+      - "dockerscripts/docker-entrypoint.sh"
       - "minio.service"
       - "buildscripts/package-release.sh"
       - "buildscripts/sign-release-rpms.sh"
@@ -212,6 +213,58 @@ jobs:
           done
 
           find . -maxdepth 1 -type f | sort
+
+      - name: Build release runtime image and verify graceful shutdown
+        run: |
+          set -euo pipefail
+          # docker-release.yml is workflow_dispatch only, so this is the only
+          # automated build of the release runtime layer and entrypoint before a
+          # real publish. Assemble a minimal image from the linux/amd64 binary
+          # goreleaser already produced; the mcli-download build stage is skipped
+          # on purpose to keep this gate offline and deterministic.
+          ctx="$(mktemp -d)"
+          tar -xzf "dist/minio_${PKG_VERSION}_linux_amd64.tar.gz" -C "${ctx}" minio
+          cp dockerscripts/docker-entrypoint.sh "${ctx}/docker-entrypoint.sh"
+          {
+            echo "FROM registry.access.redhat.com/ubi9/ubi-micro:latest"
+            echo "COPY minio /usr/bin/minio"
+            echo "COPY docker-entrypoint.sh /usr/bin/docker-entrypoint.sh"
+            echo "RUN mkdir -p /data && chmod 0777 /data && chmod +x /usr/bin/minio /usr/bin/docker-entrypoint.sh"
+            echo 'ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]'
+            echo 'CMD ["minio"]'
+          } > "${ctx}/Dockerfile"
+          docker build -t minio-runtime-test:snapshot "${ctx}"
+
+          # PID 1 must be minio, not the entry shell, on every privilege path, so
+          # a SIGTERM from docker stop reaches the server and it exits gracefully
+          # instead of being killed at the stop timeout. Regression guard for the
+          # exec-into-chroot entrypoint fix.
+          assert_graceful() {
+            name="$1"; shift
+            docker rm -f "${name}" >/dev/null 2>&1 || true
+            docker run -d --name "${name}" \
+              -e MINIO_CI_CD=1 -e MINIO_ROOT_USER=ciadmin -e MINIO_ROOT_PASSWORD=ciadmin-secret-123 \
+              "$@" minio-runtime-test:snapshot minio server /data --address :9000 >/dev/null
+            up=""
+            for _ in $(seq 1 60); do
+              if docker logs "${name}" 2>&1 | grep -q "API:"; then up=1; break; fi
+              if [ "$(docker inspect -f '{{.State.Running}}' "${name}")" != "true" ]; then break; fi
+              sleep 1
+            done
+            if [ -z "${up}" ]; then echo "server did not start (${name}):"; docker logs "${name}" | tail -5; exit 1; fi
+            pid1="$(docker exec "${name}" cat /proc/1/comm 2>/dev/null || echo '?')"
+            start="$(date +%s)"; docker stop -t 15 "${name}" >/dev/null; end="$(date +%s)"
+            code="$(docker inspect -f '{{.State.ExitCode}}' "${name}")"
+            elapsed=$((end - start))
+            echo "${name}: pid1=${pid1} stop=${elapsed}s exit=${code}"
+            graceful=0; docker logs "${name}" 2>&1 | grep -q "Exiting on signal" && graceful=1
+            docker rm -f "${name}" >/dev/null 2>&1 || true
+            [ "${graceful}" = "1" ] || { echo "no graceful-shutdown log (${name}) - signal not forwarded"; exit 1; }
+            [ "${code}" = "0" ] || { echo "non-zero exit (${name}): ${code}"; exit 1; }
+            [ "${elapsed}" -lt 10 ] || { echo "shutdown too slow (${name}): ${elapsed}s - signal not forwarded"; exit 1; }
+          }
+          assert_graceful minio-rt-default
+          assert_graceful minio-rt-dropuser -e MINIO_USERNAME=minio-user -e MINIO_GROUPNAME=minio-group
 
       - name: Validate release scripts
         run: |
