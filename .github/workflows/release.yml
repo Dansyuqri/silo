@@ -74,7 +74,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and publish with GoReleaser
+      - name: Build Draft release with GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
@@ -120,7 +120,7 @@ jobs:
           find dist -maxdepth 2 -type f \
             \( -name '*.rpm' -o -name '*.deb' -o -name '*.apk' -o -name '*.sha256sum' -o -name 'downloads-minio.json' \) | sort
 
-      - name: Upload pkger artifacts to GitHub release
+      - name: Upload pkger artifacts to Draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -131,7 +131,7 @@ jobs:
             echo "No packages were generated."
             exit 1
           fi
-          gh release upload "${RELEASE_TAG}" "${files[@]}" --clobber
+          gh release upload "${RELEASE_TAG}" "${files[@]}"
 
       - name: Upload dist artifact
         if: always()

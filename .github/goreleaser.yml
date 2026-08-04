@@ -89,10 +89,10 @@ release:
   github:
     owner: pgsty
     name: minio
-  draft: false
+  draft: true
   prerelease: false
-  mode: replace
-  replace_existing_artifacts: true
+  mode: append
+  replace_existing_artifacts: false
   name_template: "{{ .Tag }}"
 
 changelog:
