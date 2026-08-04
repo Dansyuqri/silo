@@ -2423,6 +2423,12 @@ func (s *xlStorage) CheckParts(ctx context.Context, volume string, path string, 
 		return nil, err
 	}
 
+	// Already-persisted metadata can carry this even though the boundary now
+	// refuses it, so the check belongs here too, not only at the wire edge.
+	if fi.HasNegativePartSize() {
+		return nil, errFileCorrupt
+	}
+
 	resp := CheckPartsResp{
 		// By default, all results have an unknown status
 		Results: make([]int, len(fi.Parts)),
@@ -3124,6 +3130,12 @@ func (s *xlStorage) VerifyFile(ctx context.Context, volume, path string, fi File
 		if err = Access(volumeDir); err != nil {
 			return nil, convertAccessError(err, errVolumeAccessDenied)
 		}
+	}
+
+	// See CheckParts: metadata already on disk can carry this even though the
+	// boundary now refuses it.
+	if fi.HasNegativePartSize() {
+		return nil, errFileCorrupt
 	}
 
 	resp := CheckPartsResp{

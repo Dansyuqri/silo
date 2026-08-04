@@ -523,3 +523,99 @@ func TestCheckPartsMalformedErasure(t *testing.T) {
 	}
 }
 
+// TestNegativePartSizeNeverPersists covers the one defect in this family that
+// survives the request that created it.
+//
+// A malicious peer can write metadata carrying a negative part size through
+// WriteMetadata or RenameData. AddVersion used to persist PartSizes verbatim,
+// after which a *local* heal - which does not pass through the wire guards -
+// reads it back, derives a zero expected shard size, and reports every part
+// intact. The poison stays on disk and the cluster reports itself healthy.
+//
+// Both ends are covered: the write funnel refuses to persist it, and the
+// verification sinks refuse metadata already on disk.
+func TestNegativePartSizeNeverPersists(t *testing.T) {
+	badFI := FileInfo{
+		Volume: "foo", Name: "obj", ModTime: UTCNow(),
+		VersionID: "00000000-0000-0000-0000-0000000000aa",
+		Parts:     []ObjectPartInfo{{Number: 1, Size: -2}},
+		Erasure: ErasureInfo{
+			DataBlocks: 2, ParityBlocks: 2, BlockSize: blockSizeV2,
+			Index: 1, Distribution: []int{1, 2, 3, 4},
+		},
+	}
+	if !badFI.IsValid() {
+		t.Fatal("test bug: the counterexample must satisfy FileInfo.IsValid()")
+	}
+
+	// The write funnel every version write passes through.
+	var meta xlMetaV2
+	if err := meta.AddVersion(badFI); !errors.Is(err, errFileCorrupt) {
+		t.Errorf("xlMetaV2.AddVersion persisted a negative part size: got %v, want %v", err, errFileCorrupt)
+	}
+
+	// The verification sinks, reached by local heals that bypass the wire guards.
+	restClient := newStorageRESTHTTPServerClient(t)
+	drive := globalLocalSetDrives[0][0][0].Endpoint().Path
+	mustWrite(t, filepath.Join(drive, "foo", "poisoned", "part.1"), "truncated")
+
+	storage := globalLocalSetDrives[0][0][0]
+	if _, err := storage.CheckParts(t.Context(), "foo", "poisoned", badFI); !errors.Is(err, errFileCorrupt) {
+		t.Errorf("local CheckParts accepted a negative part size: got %v, want %v", err, errFileCorrupt)
+	}
+	if _, err := storage.VerifyFile(t.Context(), "foo", "poisoned", badFI); !errors.Is(err, errFileCorrupt) {
+		t.Errorf("local VerifyFile accepted a negative part size: got %v, want %v", err, errFileCorrupt)
+	}
+
+	// And still refused over the wire.
+	if _, err := restClient.CheckParts(t.Context(), "foo", "poisoned", badFI); !errors.Is(err, errFileCorrupt) {
+		t.Errorf("remote CheckParts accepted a negative part size: got %v, want %v", err, errFileCorrupt)
+	}
+}
+// TestShardFileSizeZeroErasure pins the arithmetic guard at the sink, which is
+// what actually protects every caller.
+//
+// Both ShardFileSize methods are covered. They are separate implementations on
+// separate types -- ErasureInfo (metadata, reached by CheckParts/VerifyFile)
+// and Erasure (the coder, reached by the object layer via NewErasure, which
+// validates dataBlocks and parityBlocks but not blockSize) -- and guarding one
+// leaves the other divisible by zero.
+func TestShardFileSizeZeroErasure(t *testing.T) {
+	for _, e := range []ErasureInfo{
+		{},
+		{DataBlocks: 4},
+		{BlockSize: blockSizeV2},
+		{BlockSize: -1, DataBlocks: -1},
+	} {
+		if got := e.ShardFileSize(1024); got < 0 {
+			t.Errorf("ShardFileSize(%+v) = %d, want a non-negative size", e, got)
+		}
+		if got := e.ShardSize(); got < 0 {
+			t.Errorf("ShardSize(%+v) = %d, want a non-negative size", e, got)
+		}
+	}
+
+	// The coder variant. NewErasure must refuse a non-positive block size at
+	// construction: guarding ShardFileSize alone would leave ShardFileOffset
+	// and every division in erasure-decode.go dividing by zero, since they all
+	// use e.blockSize directly. Erasure is only ever built here, so this single
+	// point covers all of them.
+	for _, block := range []int64{0, -1} {
+		if _, err := NewErasure(t.Context(), 4, 2, block); err == nil {
+			t.Errorf("NewErasure accepted blockSize=%d; every downstream division by "+
+				"e.blockSize then divides by zero", block)
+		}
+	}
+
+	// A sane coder still works, and its arithmetic stays non-negative.
+	coder, err := NewErasure(t.Context(), 4, 2, blockSizeV2)
+	if err != nil {
+		t.Fatalf("NewErasure rejected a legitimate configuration: %v", err)
+	}
+	if got := coder.ShardFileSize(1024); got < 0 {
+		t.Errorf("Erasure.ShardFileSize = %d, want non-negative", got)
+	}
+	if got := coder.ShardFileOffset(0, 1024, 4096); got < 0 {
+		t.Errorf("Erasure.ShardFileOffset = %d, want non-negative", got)
+	}
+}

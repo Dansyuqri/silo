@@ -58,6 +58,14 @@ func (e ErasureInfo) ShardFileSize(totalLength int64) int64 {
 	if totalLength == -1 {
 		return -1
 	}
+	// ErasureInfo can arrive zero-valued from an untrusted internode payload:
+	// CheckParts and VerifyFile hand a wire-supplied FileInfo straight here.
+	// A zero BlockSize would panic with an integer divide-by-zero, and
+	// CheckParts evaluates this inside xioutil.WithDeadline - a bare goroutine
+	// whose panic no recover() can reach, taking the whole process down.
+	if e.BlockSize <= 0 || e.DataBlocks <= 0 {
+		return 0
+	}
 	numShards := totalLength / e.BlockSize
 	lastBlockSize := totalLength % e.BlockSize
 	lastShardSize := ceilFrac(lastBlockSize, int64(e.DataBlocks))
