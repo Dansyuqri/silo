@@ -18,14 +18,22 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/minio/madmin-go/v3"
+	xhttp "github.com/minio/minio/internal/http"
 )
 
 // Paths that must never be accepted from an internode payload. Each is a
@@ -523,6 +531,143 @@ func TestCheckPartsMalformedErasure(t *testing.T) {
 	}
 }
 
+// TestDeleteVersionsDeclaredCountIsNotTrusted covers a resource-exhaustion
+// vector in the same family as the CheckParts node kill: a value taken straight
+// off the wire that sizes an allocation.
+//
+// total-versions is a query argument, so a ~10 byte request used to reserve
+// len*104 bytes before a single byte of the body was read - total-versions=1e8
+// asks for ~9.7 GiB and takes the node down by memory exhaustion. A negative
+// value reached make() and panicked outright. The handler now refuses negatives
+// and grows the slice as the body decodes, so the allocation is bounded by the
+// bytes actually sent.
+//
+// The client always sends len(versions), so this has to be driven as a raw
+// request to reach the handler at all.
+func TestDeleteVersionsDeclaredCountIsNotTrusted(t *testing.T) {
+	restClient := newStorageRESTHTTPServerClient(t)
+	drive := globalLocalSetDrives[0][0][0].Endpoint().Path
+	ctx := t.Context()
+
+	canary := filepath.Join(drive, "foo", "canary.txt")
+	mustWrite(t, canary, "CANARY")
+
+	send := func(total string) error {
+		values := make(url.Values)
+		values.Set(storageRESTVolume, "foo")
+		values.Set(storageRESTTotalVersions, total)
+		// An empty body: nothing to decode, so a handler that sizes from the
+		// declared count allocates for nothing at all.
+		respBody, err := restClient.call(ctx, storageRESTMethodDeleteVersions, values, bytes.NewReader(nil), 0)
+		if respBody != nil {
+			xhttp.DrainBody(respBody)
+		}
+		return err
+	}
+
+	// A negative count used to reach make() and panic. It must now be refused
+	// by name, not merely produce "some error" - an empty body errors either
+	// way, so a bare err != nil check here would pass against the bug.
+	if err := send("-1"); err == nil || !strings.Contains(err.Error(), errInvalidArgument.Error()) {
+		t.Errorf("total-versions=-1: expected %v, got %v", errInvalidArgument, err)
+	}
+
+	// The allocation must stay proportional to the body, not to the declared
+	// count. TotalAlloc is cumulative and never decreases, so it records the
+	// allocation even if it is immediately collected.
+	for _, total := range []string{"100000000", "9223372036854775807"} {
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		err := send(total)
+		runtime.ReadMemStats(&after)
+
+		grew := after.TotalAlloc - before.TotalAlloc
+		t.Logf("total-versions=%s -> err=%v, allocated %d bytes", total, err, grew)
+		// 100000000 * sizeof(FileInfoVersions)(104) is ~9.7 GiB; anything in
+		// that neighbourhood means the declared count is still being trusted.
+		if grew > 64<<20 {
+			t.Errorf("total-versions=%s allocated %d bytes for an empty body - "+
+				"the declared count is sizing the allocation", total, grew)
+		}
+	}
+
+	if _, err := restClient.ReadAll(ctx, "foo", "canary.txt"); err != nil {
+		t.Fatalf("node stopped serving: %v", err)
+	}
+}
+
+// TestAppendFileDeclaredLengthIsNotTrusted is the same family again, this time
+// through the HTTP Content-Length header rather than a query argument.
+//
+// setRequestLimitMiddleware only wraps the body in a MaxBytesReader sized at
+// requestMaxBodySize (5 TiB + 64 MiB); it never checks the *declared*
+// Content-Length. Sizing a buffer from that declaration therefore lets a
+// request carrying no body at all reserve arbitrary memory.
+func TestAppendFileDeclaredLengthIsNotTrusted(t *testing.T) {
+	restClient := newStorageRESTHTTPServerClient(t)
+	drive := globalLocalSetDrives[0][0][0].Endpoint().Path
+	ctx := t.Context()
+	mustWrite(t, filepath.Join(drive, "foo", "canary.txt"), "CANARY")
+
+	// Go's own http client refuses to send a request whose body is shorter than
+	// the declared Content-Length, so the forged header cannot be driven through
+	// restClient - an attacker with a raw socket has no such scruples. Drive the
+	// handler directly instead; the header reaches r.ContentLength verbatim
+	// either way, and the allocation happens before a single body byte is read.
+	server := &storageRESTServer{endpoint: globalLocalSetDrives[0][0][0].Endpoint()}
+	call := func(declared int64, body []byte) *httptest.ResponseRecorder {
+		u := "/?" + url.Values{
+			storageRESTVolume:   []string{"foo"},
+			storageRESTFilePath: []string{"appended.bin"},
+		}.Encode()
+		req := httptest.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+		req.ContentLength = declared // what a raw client would put on the wire
+		req.Header.Set("Authorization", "Bearer "+globalNodeAuthToken)
+		req.Header.Set("X-Minio-Time", strconv.FormatInt(time.Now().UnixNano(), 10))
+		w := httptest.NewRecorder()
+		server.AppendFileHandler(w, req)
+		return w
+	}
+
+	for _, declared := range []int64{4 << 30, 64 << 30} {
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		w := call(declared, nil)
+		runtime.ReadMemStats(&after)
+
+		grew := after.TotalAlloc - before.TotalAlloc
+		t.Logf("Content-Length=%d, empty body -> status=%d, allocated %d bytes", declared, w.Code, grew)
+		// The bound separates "reserved a fixed amount" (single-digit MiB, and
+		// somewhat more under -race) from "sized by the declaration" (GiB). Keep
+		// it well clear of maxAppendFilePrealloc so a race build's extra
+		// bookkeeping cannot trip it.
+		if grew > 64<<20 {
+			t.Errorf("Content-Length=%d allocated %d bytes for an empty body - "+
+				"the declared length is sizing the allocation", declared, grew)
+		}
+	}
+
+	// Chunked requests arrive with ContentLength == -1, which used to reach
+	// make() directly and panic.
+	if w := call(-1, nil); w.Code == http.StatusOK {
+		t.Error("ContentLength=-1 was accepted; it must be refused")
+	}
+
+	// A well-formed append must still work, and land the exact bytes.
+	payload := []byte("REAL-APPEND-PAYLOAD")
+	if w := call(int64(len(payload)), payload); w.Code != http.StatusOK {
+		t.Fatalf("legitimate AppendFile: status %d, body %q", w.Code, w.Body.String())
+	}
+	got, err := restClient.ReadAll(ctx, "foo", "appended.bin")
+	if err != nil || string(got) != string(payload) {
+		t.Fatalf("AppendFile round trip: got %q err %v", got, err)
+	}
+
+	if _, err := restClient.ReadAll(ctx, "foo", "canary.txt"); err != nil {
+		t.Fatalf("node stopped serving: %v", err)
+	}
+}
+
 // TestNegativePartSizeNeverPersists covers the one defect in this family that
 // survives the request that created it.
 //
@@ -572,6 +717,54 @@ func TestNegativePartSizeNeverPersists(t *testing.T) {
 		t.Errorf("remote CheckParts accepted a negative part size: got %v, want %v", err, errFileCorrupt)
 	}
 }
+
+// TestReadFileLengthIsBounded pins the ceiling on ReadFileHandler's buffer.
+// A legitimate read cannot exceed one erasure shard, and a shard cannot exceed
+// the S3 part it encodes.
+// Driven against the handler directly: the REST client derives the length from
+// a caller-supplied buffer, so going through it would allocate the very
+// gigabytes this test is trying to prove the server does not.
+func TestReadFileLengthIsBounded(t *testing.T) {
+	newStorageRESTHTTPServerClient(t)
+	drive := globalLocalSetDrives[0][0][0].Endpoint().Path
+	mustWrite(t, filepath.Join(drive, "foo", "small.bin"), "tiny")
+
+	server := &storageRESTServer{endpoint: globalLocalSetDrives[0][0][0].Endpoint()}
+	call := func(length string) (*httptest.ResponseRecorder, uint64) {
+		u := "/?" + url.Values{
+			storageRESTVolume:   []string{"foo"},
+			storageRESTFilePath: []string{"small.bin"},
+			storageRESTOffset:   []string{"0"},
+			storageRESTLength:   []string{length},
+		}.Encode()
+		req := httptest.NewRequest(http.MethodPost, u, nil)
+		req.Header.Set("Authorization", "Bearer "+globalNodeAuthToken)
+		req.Header.Set("X-Minio-Time", strconv.FormatInt(time.Now().UnixNano(), 10))
+		w := httptest.NewRecorder()
+
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		server.ReadFileHandler(w, req)
+		runtime.ReadMemStats(&after)
+		return w, after.TotalAlloc - before.TotalAlloc
+	}
+
+	for _, length := range []string{"8589934592", "1099511627776"} { // 8 GiB, 1 TiB
+		w, grew := call(length)
+		t.Logf("length=%s against a 4 byte file -> status=%d, allocated %d bytes", length, w.Code, grew)
+		if grew > 64<<20 {
+			t.Errorf("length=%s allocated %d bytes; the declared length is sizing the buffer", length, grew)
+		}
+	}
+
+	// A read within the ceiling must still behave exactly as before: the file is
+	// four bytes, so asking for more is a short read, not a rejected argument.
+	w, _ := call("64")
+	if body := w.Body.String(); strings.Contains(body, errInvalidArgument.Error()) {
+		t.Errorf("a 64 byte read was rejected by the ceiling: %q", body)
+	}
+}
+
 // TestShardFileSizeZeroErasure pins the arithmetic guard at the sink, which is
 // what actually protects every caller.
 //

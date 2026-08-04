@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -49,6 +50,22 @@ import (
 )
 
 var errDiskStale = errors.New("drive stale")
+
+// maxAppendFilePrealloc bounds how much AppendFileHandler reserves up front
+// from the caller-declared Content-Length. It only affects pre-reservation:
+// bodies larger than this are still read in full, they just grow into place.
+//
+// Kept small deliberately. The reservation happens before a single body byte
+// arrives, so whatever it is, an attacker gets it for free on every concurrent
+// request - a large bound simply moves the exhaustion threshold rather than
+// removing it. 1 MiB matches the common erasure block size, so the ordinary
+// append still completes in one allocation.
+const maxAppendFilePrealloc = 1 << 20
+
+// maxReadFileLength caps ReadFileHandler's buffer. ReadFile serves the legacy
+// whole-file bitrot reader, whose length is ShardFileOffset over a single part,
+// and an S3 part is at most 5 GiB -- so no legitimate call can ask for more.
+const maxReadFileLength = 5 << 30
 
 // To abstract a disk over network.
 type storageRESTServer struct {
@@ -334,12 +351,32 @@ func (s *storageRESTServer) AppendFileHandler(w http.ResponseWriter, r *http.Req
 	volume := r.Form.Get(storageRESTVolume)
 	filePath := r.Form.Get(storageRESTFilePath)
 
-	buf := make([]byte, r.ContentLength)
-	_, err := io.ReadFull(r.Body, buf)
+	if r.ContentLength < 0 {
+		s.writeErrorResponse(w, errInvalidArgument)
+		return
+	}
+
+	// Reserve from the declared Content-Length only up to a bound, then let the
+	// buffer grow with the bytes actually delivered. Content-Length is a header
+	// the caller writes, and setRequestLimitMiddleware only wraps the body in a
+	// MaxBytesReader sized at requestMaxBodySize (5 TiB) - it never checks the
+	// declaration. Sizing the buffer from it therefore lets a request that
+	// sends no body at all reserve arbitrary memory and take the node down.
+	//
+	// The cap governs how much is pre-reserved, never which requests are
+	// accepted, so a body larger than it is still read in full.
+	var body bytes.Buffer
+	body.Grow(int(min(r.ContentLength, maxAppendFilePrealloc)))
+	n, err := body.ReadFrom(io.LimitReader(r.Body, r.ContentLength))
 	if err != nil {
 		s.writeErrorResponse(w, err)
 		return
 	}
+	if n != r.ContentLength {
+		s.writeErrorResponse(w, io.ErrUnexpectedEOF)
+		return
+	}
+	buf := body.Bytes()
 	err = s.getStorage().AppendFile(r.Context(), volume, filePath, buf)
 	if err != nil {
 		s.writeErrorResponse(w, err)
@@ -602,6 +639,17 @@ func (s *storageRESTServer) ReadFileHandler(w http.ResponseWriter, r *http.Reque
 		}
 		verifier = NewBitrotVerifier(BitrotAlgorithmFromString(r.Form.Get(storageRESTBitrotAlgo)), hash)
 	}
+	// The declared length sizes the buffer before anything is read and arrives
+	// in a query argument, so an unbounded value lets a small request reserve
+	// arbitrary memory. A legitimate read cannot exceed one erasure shard, and
+	// a shard never exceeds the S3 part it encodes, so anything above that
+	// ceiling is provably not a real read. This bounds the reservation at what
+	// normal operation already reaches; it does not make GiB-scale reads free.
+	if int64(length) > maxReadFileLength {
+		s.writeErrorResponse(w, errInvalidArgument)
+		return
+	}
+
 	buf := make([]byte, length)
 	defer metaDataPoolPut(buf) // Reuse if we can.
 	_, err = s.getStorage().ReadFile(r.Context(), volume, filePath, int64(offset), buf, verifier)
@@ -686,15 +734,27 @@ func (s *storageRESTServer) DeleteVersionsHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	versions := make([]FileInfoVersions, totalVersions)
+	if totalVersions < 0 {
+		s.writeErrorResponse(w, errInvalidArgument)
+		return
+	}
+
+	// Grow as the body decodes rather than trusting the declared count. The
+	// count arrives in a query argument, so pre-allocating from it lets a
+	// ~10-byte request reserve gigabytes (FileInfoVersions is 104 bytes, so
+	// total-versions=100000000 asks for ~9.7 GiB) and take the node down by
+	// memory exhaustion. Growing means the allocation stays proportional to
+	// the bytes the caller actually sent.
+	versions := make([]FileInfoVersions, 0, min(totalVersions, 1024))
 	decoder := msgpNewReader(r.Body)
 	defer readMsgpReaderPoolPut(decoder)
-	for i := range totalVersions {
-		dst := &versions[i]
+	for range totalVersions {
+		var dst FileInfoVersions
 		if err := dst.DecodeMsg(decoder); err != nil {
 			s.writeErrorResponse(w, err)
 			return
 		}
+		versions = append(versions, dst)
 	}
 
 	done := keepHTTPResponseAlive(w)
@@ -702,7 +762,7 @@ func (s *storageRESTServer) DeleteVersionsHandler(w http.ResponseWriter, r *http
 	errs := s.getStorage().DeleteVersions(r.Context(), volume, versions, opts)
 	done(nil)
 
-	dErrsResp := &DeleteVersionsErrsResp{Errs: make([]string, totalVersions)}
+	dErrsResp := &DeleteVersionsErrsResp{Errs: make([]string, len(versions))}
 	for idx := range versions {
 		if errs[idx] != nil {
 			dErrsResp.Errs[idx] = errs[idx].Error()
