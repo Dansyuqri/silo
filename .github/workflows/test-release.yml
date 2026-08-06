@@ -7,6 +7,7 @@ on:
       - ".github/goreleaser.yml"
       - ".github/nfpm.yml"
       - "Dockerfile.goreleaser"
+      - "Dockerfile.distroless"
       - "dockerscripts/download-static-curl.sh"
       - "dockerscripts/docker-entrypoint.sh"
       - "dockerscripts/docker-entrypoint_test.sh"
@@ -386,6 +387,74 @@ jobs:
           sleep 2
           test "$(docker exec silo-rt-legacy cat /proc/1/comm)" = silo
           docker rm -f silo-rt-legacy >/dev/null
+
+      - name: Build distroless runtime image and verify native healthcheck
+        run: |
+          set -euo pipefail
+          # Unlike the classic image, Dockerfile.distroless has no release
+          # download stages, so the real shipped file can be built and gated
+          # here. It must keep working with nothing in it but the silo
+          # binary: no shell, no mc, no entrypoint script.
+          ctx="$(mktemp -d)"
+          tar -xzf "dist/silo_${PKG_VERSION}_linux_amd64.tar.gz" -C "${ctx}" silo
+          cp Dockerfile.distroless LICENSE NOTICE CREDITS "${ctx}/"
+          docker build -t silo-distroless-test:snapshot -f "${ctx}/Dockerfile.distroless" "${ctx}"
+
+          # HEALTHCHECK is a Docker extension absent from the OCI image
+          # spec; assert it survived into the built image config.
+          docker inspect -f '{{json .Config.Healthcheck.Test}}' silo-distroless-test:snapshot \
+            | grep -F '"healthcheck"' >/dev/null
+
+          # /data ships in the image layer world-writable (issue #55):
+          # there is no entrypoint left to repair ownership at runtime. The
+          # same export proves the image carries the binary and the license
+          # set, and neither a shell nor a legacy /usr/bin/minio.
+          probe="$(docker create silo-distroless-test:snapshot server /data)"
+          docker export "${probe}" | tar -tvf - data usr/bin/silo licenses > "${ctx}/listing.txt"
+          grep -E '^drwxrwxrwx.* data/$' "${ctx}/listing.txt" >/dev/null
+          grep -E ' licenses/(LICENSE|NOTICE|CREDITS)$' "${ctx}/listing.txt" >/dev/null
+          if docker export "${probe}" | tar -tf - bin/sh usr/bin/minio 2>/dev/null | grep -q .; then
+            echo "distroless image unexpectedly contains a shell or /usr/bin/minio"
+            exit 1
+          fi
+          docker rm "${probe}" >/dev/null
+
+          # The baked-in healthcheck must drive Docker's health state on its
+          # own, the probe binary must be directly exec-able without any
+          # shell, and SIGTERM must still reach PID 1 (the server binary is
+          # the entrypoint) for a graceful stop.
+          assert_distroless() {
+            name="$1"; shift
+            docker rm -f "${name}" >/dev/null 2>&1 || true
+            docker run -d --name "${name}" \
+              -e MINIO_CI_CD=1 -e MINIO_ROOT_USER=ciadmin -e MINIO_ROOT_PASSWORD=ciadmin-secret-123 \
+              "$@" silo-distroless-test:snapshot server /data --address :9000 >/dev/null
+            status=""
+            for _ in $(seq 1 90); do
+              status="$(docker inspect -f '{{.State.Health.Status}}' "${name}" 2>/dev/null || echo '?')"
+              if [ "${status}" = "healthy" ]; then break; fi
+              if [ "$(docker inspect -f '{{.State.Running}}' "${name}")" != "true" ]; then break; fi
+              sleep 1
+            done
+            if [ "${status}" != "healthy" ]; then
+              echo "container never became healthy (${name}): status=${status}"
+              docker logs "${name}" 2>&1 | tail -5
+              exit 1
+            fi
+            docker exec "${name}" /usr/bin/silo healthcheck ready
+            docker exec "${name}" /usr/bin/silo healthcheck cluster
+            start="$(date +%s)"; docker stop -t 15 "${name}" >/dev/null; end="$(date +%s)"
+            code="$(docker inspect -f '{{.State.ExitCode}}' "${name}")"
+            elapsed=$((end - start))
+            graceful=0; docker logs "${name}" 2>&1 | grep -q "Exiting on signal" && graceful=1
+            echo "${name}: health=${status} stop=${elapsed}s exit=${code}"
+            docker rm -f "${name}" >/dev/null 2>&1 || true
+            [ "${graceful}" = "1" ] || { echo "no graceful-shutdown log (${name}) - signal not forwarded"; exit 1; }
+            [ "${code}" = "0" ] || { echo "non-zero exit (${name}): ${code}"; exit 1; }
+            [ "${elapsed}" -lt 10 ] || { echo "shutdown too slow (${name}): ${elapsed}s - signal not forwarded"; exit 1; }
+          }
+          assert_distroless silo-dl-default
+          assert_distroless silo-dl-rootless --user 1001:1001
 
       - name: Validate release scripts
         run: |

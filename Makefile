@@ -221,6 +221,17 @@ docker: checks build-debugging ## builds the local Linux Silo container image
 		docker build -q --no-cache --platform linux/$(GOARCH) -t $(TAG) --build-arg TARGETARCH=$(GOARCH) \
 			-f "$$context/Dockerfile.goreleaser" "$$context"
 
+docker-distroless: checks build-debugging ## builds the local Linux Silo distroless container image
+	@echo "Building Silo distroless container image '$(TAG)-distroless'"
+	@set -e; \
+		context=$$(mktemp -d); \
+		trap 'rm -rf "$$context"' EXIT; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -tags kqueue -trimpath \
+			--ldflags "$(LDFLAGS)" -o "$$context/silo"; \
+		cp Dockerfile.distroless LICENSE NOTICE CREDITS "$$context/"; \
+		docker build -q --no-cache --platform linux/$(GOARCH) -t $(TAG)-distroless \
+			-f "$$context/Dockerfile.distroless" "$$context"
+
 test-resiliency: build
 	@echo "Running resiliency tests"
 	@(DOCKER_COMPOSE_FILE=$(PWD)/docs/resiliency/docker-compose.yaml env bash $(PWD)/docs/resiliency/resiliency-tests.sh)
