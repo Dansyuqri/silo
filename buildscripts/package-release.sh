@@ -20,6 +20,10 @@ if ! [[ "${PKG_VERSION}" =~ ^[0-9]{14}\.0\.0$ ]]; then
   exit 1
 fi
 
+# The PGSTY release segment, PGDG-style. sign-release-rpms.sh declares the
+# same value as expected_release, and test-release.yml asserts the two agree.
+PKG_RELEASE="1PGSTY"
+
 if ! command -v nfpm >/dev/null 2>&1; then
   echo "nfpm is required" >&2
   exit 1
@@ -122,19 +126,21 @@ build_arch() {
 
   source="$(find_binary "${goarch}")"
 
-  # These names are the public download names and must not drift; RPM carries a
-  # release number, DEB and APK do not, matching what pkger produced.
-  rpm_file="${packages_dir}/silo-${PKG_VERSION}-1.${rpm_arch}.rpm"
-  deb_file="${packages_dir}/silo_${PKG_VERSION}_${deb_arch}.deb"
+  # These names are the public download names and must not drift; RPM and DEB
+  # carry the PGSTY release number (nfpm renders it as the RPM Release tag and
+  # as the Debian revision after a dash). APK stays bare: Alpine pkgrel only
+  # admits -r<integer>, so a lettered release cannot ride along there.
+  rpm_file="${packages_dir}/silo-${PKG_VERSION}-${PKG_RELEASE}.${rpm_arch}.rpm"
+  deb_file="${packages_dir}/silo_${PKG_VERSION}-${PKG_RELEASE}_${deb_arch}.deb"
   apk_file="${packages_dir}/silo_${PKG_VERSION}_${apk_arch}.apk"
 
   (
     cd "${repo_dir}"
     export NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
       NFPM_LICENSE="${license_file}" NFPM_NOTICE="${notice_file}"
-    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE=1 NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE="${PKG_RELEASE}" NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager rpm --target "${rpm_file}"
-    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE="${PKG_RELEASE}" NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager deb --target "${deb_file}"
     PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager apk --target "${apk_file}"

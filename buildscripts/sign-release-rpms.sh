@@ -7,6 +7,7 @@ set -euo pipefail
 # other way round would only surface here, on the maintainer's machine, after
 # the build has already run and uploaded.
 expected_fingerprint="9592A7BC7A682E7333376E09E7935D8DB9BD8B20"
+expected_release="1PGSTY"
 expected_vendor="PGSTY"
 expected_packager="Ruohang Feng (@Vonng) <rh@vonng.com>"
 expected_url="https://silo.pgsty.com"
@@ -126,8 +127,8 @@ mkdir -p "${unsigned_dir}" "${signed_dir}"
 chmod 700 "${work_dir}" "${unsigned_dir}" "${signed_dir}"
 
 rpm_files=(
-  "silo-${package_version}-1.x86_64.rpm"
-  "silo-${package_version}-1.aarch64.rpm"
+  "silo-${package_version}-${expected_release}.x86_64.rpm"
+  "silo-${package_version}-${expected_release}.aarch64.rpm"
 )
 
 download_patterns=()
@@ -209,7 +210,7 @@ for rpm_file in "${rpm_files[@]}"; do
 
   assert_rpm_tag "${container_rpm}" NAME silo
   assert_rpm_tag "${container_rpm}" VERSION "${package_version}"
-  assert_rpm_tag "${container_rpm}" RELEASE 1
+  assert_rpm_tag "${container_rpm}" RELEASE "${expected_release}"
   assert_rpm_tag "${container_rpm}" ARCH "${expected_arch}"
   assert_rpm_tag "${container_rpm}" VENDOR "${expected_vendor}"
   assert_rpm_tag "${container_rpm}" PACKAGER "${expected_packager}"
