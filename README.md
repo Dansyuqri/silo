@@ -1,24 +1,26 @@
 <h1 align="center">
-  <img src=".github/silo-word.svg" alt="SILO" height="80">
+  <a href="https://silo.pgsty.com/">
+    <img src=".github/silo-logo.svg" alt="Silo" width="160">
+  </a>
 </h1>
 
 
 <p align="center">
-  <strong>Conservatively maintained S3-compatible object storage</strong><br>
-  Security maintenance, versioned release artifacts, and operational continuity for existing deployments.
+  <strong>S3-compatible object storage — a MinIO fork maintained by PIGSTY</strong>
 </p>
 
 <p align="center">
   <a href="https://silo.pgsty.com/">Website</a> ·
   <a href="https://silo.pgsty.com/docs/">Documentation</a> ·
   <a href="https://silo.pgsty.com/download/">Download</a> ·
-  <a href="https://silo.pgsty.com/blog/">Blog</a> ·
-  <a href="https://github.com/pgsty/silo/releases">Releases</a> ·
+  <a href="https://silo.pgsty.com/tags/silo/">Release Notes</a> ·
+  <a href="https://silo.pgsty.com/compatibility/server/">Compatibility</a> ·
   <a href="SECURITY.md">Security</a> ·
   <a href="README_ZH.md">中文</a>
 </p>
 
 <p align="center">
+  <a href="https://silo.pgsty.com/"><img alt="Website" src="https://img.shields.io/badge/Website-silo.pgsty.com-1d588c"></a>
   <a href="https://github.com/pgsty/silo/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/silo?include_prereleases&label=release&logo=github"></a>
   <a href="https://hub.docker.com/r/pgsty/silo"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/pgsty/silo?logo=docker"></a>
   <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/silo?logo=go"></a>
@@ -35,19 +37,34 @@
 
 Silo maintains one downstream release line derived from the open-source MinIO server. It provides maintained builds and release artifacts for existing MinIO-compatible deployments after upstream community distribution ended. Pigsty uses Silo for object storage, including as an optional PostgreSQL backup repository.
 
-The official project portal is [silo.pgsty.com](https://silo.pgsty.com/). It brings documentation, downloads, release and security notes, and project background together. English is served at the site root; Chinese is available under [/zh/](https://silo.pgsty.com/zh/).
+The fork follows one rule: **the product and its delivery surfaces are renamed; the protocol and your data are not.** The `silo` executable, packages, service, and container image carry the new name, while the S3 API, `MINIO_*` variables, `minio_*` metrics, `x-minio-*` headers, reserved routes, and the on-disk format stay unchanged. The differences are recorded in the [compatibility notes](https://silo.pgsty.com/compatibility/server/).
+
+The official project portal is [silo.pgsty.com](https://silo.pgsty.com/). It brings documentation, downloads, release and security notes, and project background together.
 
 ## Find the Right Resource
 
 | Looking for | Canonical location |
 | :-- | :-- |
-| Project overview and navigation | [Silo Website](https://silo.pgsty.com/) ([中文](https://silo.pgsty.com/zh/)) |
-| Installation methods and downloads | [Download & Install](https://silo.pgsty.com/download/) ([中文](https://silo.pgsty.com/zh/download/)) |
-| Operations, administration, development, and reference | [Documentation](https://silo.pgsty.com/docs/) ([中文](https://silo.pgsty.com/zh/docs/)) |
-| Project news, release notes, and security notes | [Blog](https://silo.pgsty.com/blog/), including [releases](https://silo.pgsty.com/blog/release/) and [security](https://silo.pgsty.com/blog/security/) |
+| Project overview and navigation | [Silo Website](https://silo.pgsty.com/) |
+| Installation methods and downloads | [Download & Install](https://silo.pgsty.com/download/) |
+| Operations, administration, development, and reference | [Documentation](https://silo.pgsty.com/docs/) |
+| Release notes for this server | [Silo release notes](https://silo.pgsty.com/tags/silo/) |
+| Differences from upstream MinIO | [Silo vs. MinIO compatibility notes](https://silo.pgsty.com/compatibility/server/) |
+| Project news and security advisories | [Blog](https://silo.pgsty.com/blog/) · [release](https://silo.pgsty.com/blog/release/) and [security](https://silo.pgsty.com/blog/security/) notes |
 | Versioned binaries, checksums, and source archives | [GitHub Releases](https://github.com/pgsty/silo/releases) |
 | Bug reports and feature discussions | [GitHub Issues](https://github.com/pgsty/silo/issues) |
-| License, attribution, and trademark information | [License](https://silo.pgsty.com/about/license/), [Attribution](https://silo.pgsty.com/about/attribution/), and [Trademark](https://silo.pgsty.com/about/trademark/) |
+| Vulnerability reporting | [`SECURITY.md`](SECURITY.md) and [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) |
+| License, attribution, and trademark information | [`LICENSE`](LICENSE) · [`NOTICE`](NOTICE) · [`CREDITS`](CREDITS) · portal [license](https://silo.pgsty.com/about/license/), [attribution](https://silo.pgsty.com/about/attribution/), and [trademark](https://silo.pgsty.com/about/trademark/) pages |
+
+## Related Projects
+
+| Repository | Description |
+| :-- | :-- |
+| [`pgsty/silo`](https://github.com/pgsty/silo) | This repository — the Silo object storage server, an S3-compatible MinIO fork |
+| [`pgsty/mc`](https://github.com/pgsty/mc) | The Silo command-line client, shipped as `mcli` with the `mc` command name |
+| [`pgsty/silo-console`](https://github.com/pgsty/silo-console) | Admin web console, embedded in the server build |
+| [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) | Shared Go packages maintained for the Silo forks |
+| [`pgsty/pigsty`](https://github.com/pgsty/pigsty) | Pigsty — the PostgreSQL distribution that ships Silo as its object storage |
 
 ## Maintenance Policy
 
@@ -69,6 +86,10 @@ Changes are kept narrow and tested where practical. Maintenance is best effort; 
 - commercial support, SLAs, 24×7 coverage, or SUBNET access;
 - deployment design, access control, monitoring, backup, or recovery.
 
+## Governance
+
+The server, client, console, and shared packages are maintained under one release process: DCO-signed commits, reviewed pull requests, and versioned `RELEASE.YYYY-MM-DDTHH-MM-SSZ` tags whose artifacts ship with checksums, SPDX SBOMs, Sigstore-signed manifests, and GitHub build attestations. Each release is announced with a [release note](https://silo.pgsty.com/tags/silo/) on the portal; security handling follows [`SECURITY.md`](SECURITY.md) and the [advisory log](docs/security/advisories.md). Upstream copyright, license, and third-party notices are preserved in [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`CREDITS`](CREDITS).
+
 ## Compatibility
 
 Silo aims to preserve:
@@ -79,7 +100,7 @@ Silo aims to preserve:
 
 Silo-owned delivery surfaces use the `silo` executable, package, service, Helm chart, and `pgsty/silo` container image. Native artifacts intentionally do not install a `minio` binary alias.
 
-Compatibility is the default constraint. Silo preserves existing wire, client, configuration, and operational behavior whenever doing so remains safe. Compatibility is broken only when necessary to close a major security issue, and the release notes must identify the affected behavior and migration path. Treat each release as a downstream upgrade: pin versions, review [release notes](https://silo.pgsty.com/blog/release/) and [security advisories](docs/security/advisories.md), keep a rollback path, and test before production use.
+Compatibility is the default constraint. Silo preserves existing wire, client, configuration, and operational behavior whenever doing so remains safe. Compatibility is broken only when necessary to close a major security issue, and the release notes must identify the affected behavior and migration path. Treat each release as a downstream upgrade: pin versions, review the [release notes](https://silo.pgsty.com/tags/silo/), [compatibility notes](https://silo.pgsty.com/compatibility/server/), and [security advisories](docs/security/advisories.md), keep a rollback path, and test before production use.
 
 ## Downloads and Release Artifacts
 
@@ -232,9 +253,14 @@ This project was created in response to changes in the upstream community distri
 | Essay | Subject |
 | :-- | :-- |
 | [MinIO Is Dead](https://silo.pgsty.com/blog/post/minio-is-dead/) | Changes to the upstream project and distribution model |
+| [MinIO Is Dead, Who Takes Over?](https://silo.pgsty.com/blog/post/minio-alternative/) | Alternatives considered |
 | [MinIO Is Dead, Long Live MinIO](https://silo.pgsty.com/blog/post/minio-resurrect/) | Establishing the fork and its release pipeline |
 | [Two months into maintaining a MinIO fork](https://silo.pgsty.com/blog/post/minio-promise-kept/) | Initial security and maintenance work |
 
 ## License and Trademark
 
-The server remains licensed under the [GNU Affero General Public License v3.0](LICENSE). See [`CREDITS`](CREDITS) and [`NOTICE`](NOTICE) for upstream authorship and attribution. MinIO is a trademark of MinIO, Inc. Silo is an independent community project and is not affiliated with or endorsed by MinIO, Inc.
+The server source is distributed under the [GNU Affero General Public License v3.0 or later](LICENSE). This fork derives from [`minio/minio`](https://github.com/minio/minio): [`NOTICE`](NOTICE) retains the upstream product notice, [`CREDITS`](CREDITS) records licenses and notices for included third-party components, and the Git history records downstream modifications.
+
+MinIO is a trademark of MinIO, Inc. The name is used here only to identify the upstream project and compatibility lineage. Pigsty, Silo, and `pgsty/silo` are independent community efforts and are not affiliated with, endorsed by, or sponsored by MinIO, Inc.
+
+The portal separately publishes the project [license summary](https://silo.pgsty.com/about/license/), [documentation attribution](https://silo.pgsty.com/about/attribution/), and [trademark notice](https://silo.pgsty.com/about/trademark/).
