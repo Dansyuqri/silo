@@ -13,7 +13,7 @@ case "${1:-}" in
 		;;
 	silo)
 		;;
-	-*|server|fmt-gen)
+	-*|server|fmt-gen|healthcheck)
 		set -- silo "$@"
 		;;
 esac

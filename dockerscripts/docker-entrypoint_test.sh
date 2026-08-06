@@ -40,6 +40,7 @@ run_case() {
 run_case default $'silo\n'
 run_case server $'silo\nserver\n/data\n' server /data
 run_case option $'silo\n--version\n' --version
+run_case healthcheck $'silo\nhealthcheck\nready\n' healthcheck ready
 run_case explicit-silo $'silo\nserver\n/data\n' silo server /data
 run_case legacy-minio $'silo\nserver\n/data\n' minio server /data
 

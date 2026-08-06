@@ -2,6 +2,35 @@
 
 Silo server exposes three un-authenticated, healthcheck endpoints liveness probe and a cluster probe at `/minio/health/live` and `/minio/health/cluster` respectively.
 
+## Native CLI probe
+
+The `silo` binary can probe those endpoints itself, which makes health checking possible in containers that ship no shell, `curl`, or `mc`:
+
+```
+silo healthcheck [FLAGS] [live|ready|cluster|cluster-read]
+```
+
+The check name maps 1:1 onto `/minio/health/<path>`; `live` is the default. The exit code is `0` when healthy and `1` otherwise, and one diagnostic line (including the `x-minio-server-status` and quorum headers on failure) is printed for `docker inspect` to capture. The probe target is derived the same way the server derives its own listen address — `--address` / `MINIO_ADDRESS`, with HTTPS auto-detected from `public.crt` and `private.key` in `--certs-dir` — or overridden wholesale with `--url`. Certificate verification is skipped, matching the kubelet's behavior for HTTPS probes.
+
+Use it as an image `HEALTHCHECK` (exec form, since there may be no shell):
+
+```
+HEALTHCHECK --interval=30s --timeout=5s --start-period=2m --start-interval=2s --retries=3 \
+  CMD ["/usr/bin/silo", "healthcheck", "ready"]
+```
+
+or as a Docker Compose healthcheck:
+
+```
+healthcheck:
+  test: ["CMD", "/usr/bin/silo", "healthcheck", "ready"]
+  interval: 5s
+  timeout: 5s
+  retries: 5
+```
+
+`silo healthcheck --maintenance cluster` answers the pre-drain question documented below: exit `0` when the node can be taken down safely, exit `1` (HTTP 412) when doing so would lose HA. Keep the `cluster` checks out of per-container liveness probes — they reflect cluster-wide quorum, not this process.
+
 ## Liveness probe
 
 This probe always responds with '200 OK'. Only fails if 'etcd' is configured and unreachable. When liveness probe fails, Kubernetes like platforms restart the container.

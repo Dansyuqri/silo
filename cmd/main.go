@@ -138,6 +138,7 @@ func newApp(name string) *cli.App {
 	// Register all commands.
 	registerCommand(serverCmd)
 	registerCommand(fmtGenCmd)
+	registerCommand(healthcheckCmd)
 
 	// Set up app.
 	cli.HelpFlag = cli.BoolFlag{
