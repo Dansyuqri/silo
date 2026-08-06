@@ -28,6 +28,9 @@
 > [!IMPORTANT]
 > Silo is an independent, community-maintained fork of the open-source MinIO server, published by [Pigsty](https://pigsty.io) from [`pgsty/silo`](https://github.com/pgsty/silo). It is not affiliated with, endorsed by, or sponsored by MinIO, Inc. “MinIO” is used only to identify the upstream project and compatibility lineage.
 
+> [!NOTE]
+> This repository was renamed from `pgsty/minio` to `pgsty/silo`, and its default branch from `master` to `main`, on 2026-08-06. If you need the artifacts maintained under the original MinIO identity, they are on the archived [`minio`](https://github.com/pgsty/silo/tree/minio) branch and in the releases up to [`RELEASE.2026-08-04T00-00-00Z`](https://github.com/pgsty/silo/releases/tag/RELEASE.2026-08-04T00-00-00Z); those assets and the `docker.io/pgsty/minio` image stay published and unmodified. The rename changed product and artifact names only — `MINIO_*` variables, `minio_*` metrics, `x-minio-*` headers, `/minio/*` routes, and the on-disk format are unchanged.
+
 ## Overview
 
 Silo maintains one downstream release line derived from the open-source MinIO server. It provides maintained builds and release artifacts for existing MinIO-compatible deployments after upstream community distribution ended. Pigsty uses Silo for object storage, including as an optional PostgreSQL backup repository.

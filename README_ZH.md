@@ -28,6 +28,9 @@
 > [!IMPORTANT]
 > Silo 是由 [Pigsty](https://pigsty.cc) 独立维护、从 [`pgsty/silo`](https://github.com/pgsty/silo) 发布的开源 MinIO 社区分支。本项目与 MinIO, Inc. 不存在隶属、背书或赞助关系；文中使用 “MinIO” 仅用于说明上游项目及兼容谱系。
 
+> [!NOTE]
+> 2026-08-06，本仓库由 `pgsty/minio` 更名为 `pgsty/silo`，默认分支由 `master` 更名为 `main`。如果你需要以原本 MinIO 形态维持的归档构件，它们位于归档的 [`minio`](https://github.com/pgsty/silo/tree/minio) 分支，以及截止到 [`RELEASE.2026-08-04T00-00-00Z`](https://github.com/pgsty/silo/releases/tag/RELEASE.2026-08-04T00-00-00Z) 的历次发布中；这些资产与 `docker.io/pgsty/minio` 镜像保持已发布状态且不做改动。本次更名只改变产品与交付物名称 —— `MINIO_*` 变量、`minio_*` 指标、`x-minio-*` 头、`/minio/*` 路由与磁盘格式均保持不变。
+
 ## 概述
 
 Silo 维护一条源自开源 MinIO 服务端的下游版本线，为上游停止社区发行后仍在运行 MinIO 兼容部署的用户提供持续构建与发行产物。
