@@ -102,10 +102,12 @@ jobs:
 
           # The binaries going into the images are the published ones, checked
           # against the published checksums, not a rebuild that merely ought to
-          # match them.
+          # match them. awk matches the manifest filename column exactly: a
+          # substring grep would also pull in the archive's .sbom.json line,
+          # whose file is deliberately not downloaded in this lane.
           cd "${assets_dir}"
-          grep -F "  ${amd64_archive}" "${checksums}" | sha256sum --check
-          grep -F "  ${arm64_archive}" "${checksums}" | sha256sum --check
+          awk -v name="${amd64_archive}" '$2 == name' "${checksums}" | sha256sum --check
+          awk -v name="${arm64_archive}" '$2 == name' "${checksums}" | sha256sum --check
 
           # The checksum manifest and both archives must have provenance from
           # this repository's release workflow at the exact checked-out tag.
