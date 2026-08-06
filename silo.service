@@ -9,8 +9,6 @@ AssertFileIsExecutable=/usr/bin/silo
 [Service]
 Type=notify
 
-WorkingDirectory=/usr/local
-
 User=silo
 Group=silo
 ProtectProc=invisible

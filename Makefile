@@ -215,7 +215,7 @@ docker: checks build-debugging ## builds the local Linux Silo container image
 		CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -tags kqueue -trimpath \
 			--ldflags "$(LDFLAGS)" -o "$$context/silo"; \
 		mkdir -p "$$context/dockerscripts"; \
-		cp Dockerfile.goreleaser LICENSE CREDITS "$$context/"; \
+		cp Dockerfile.goreleaser LICENSE NOTICE CREDITS "$$context/"; \
 		cp dockerscripts/docker-entrypoint.sh dockerscripts/download-static-curl.sh \
 			"$$context/dockerscripts/"; \
 		docker build -q --no-cache --platform linux/$(GOARCH) -t $(TAG) --build-arg TARGETARCH=$(GOARCH) \

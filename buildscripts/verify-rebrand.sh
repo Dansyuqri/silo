@@ -120,6 +120,8 @@ require_text cmd/build-constants.go 'upstreamCopyrightEndYear = "2025"'
 require_text cmd/build-constants.go 'forkCopyrightStartYear = "2025"'
 require_text cmd/main.go 'upstreamCopyrightEndYear'
 reject_text cmd/main.go 'CopyrightYear = strconv.Itoa(time.Now().Year())'
+require_text NOTICE 'MinIO Project, (C) 2015-2025 MinIO, Inc.'
+require_text NOTICE 'Silo Project modifications, (C) 2025-2026 PGSTY.'
 
 # Contribution policy: no CLA, inbound=outbound, DCO sign-off enforced in CI.
 require_file .github/workflows/dco.yml

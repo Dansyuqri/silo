@@ -17,7 +17,9 @@ expected_group="Applications/File"
 expected_payload="/etc/default/silo
 /usr/bin/silo
 /usr/lib/systemd/system/silo.service
-/usr/lib/sysusers.d/silo.conf"
+/usr/lib/sysusers.d/silo.conf
+/usr/share/doc/silo/LICENSE
+/usr/share/doc/silo/NOTICE"
 repository="${GH_REPO:-pgsty/silo}"
 container="${DNFUPDATE_CONTAINER:-dnfupdate}"
 upload=false

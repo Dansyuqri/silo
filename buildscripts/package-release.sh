@@ -37,6 +37,8 @@ fi
 unit_file="${repo_dir}/silo.service"
 defaults_file="${repo_dir}/silo.env"
 sysusers_file="${repo_dir}/silo.sysusers"
+license_file="${repo_dir}/LICENSE"
+notice_file="${repo_dir}/NOTICE"
 postinstall_file="${repo_dir}/buildscripts/package/postinstall.sh"
 preremove_file="${repo_dir}/buildscripts/package/preremove.sh"
 if [ ! -f "${unit_file}" ]; then
@@ -51,6 +53,12 @@ if [ ! -f "${sysusers_file}" ]; then
   echo "Missing sysusers file: ${sysusers_file}" >&2
   exit 1
 fi
+for distributed_doc in "${license_file}" "${notice_file}"; do
+  if [ ! -s "${distributed_doc}" ]; then
+    echo "Missing license material: ${distributed_doc}" >&2
+    exit 1
+  fi
+done
 for lifecycle_script in "${postinstall_file}" "${preremove_file}"; do
   if [ ! -x "${lifecycle_script}" ]; then
     echo "Missing executable package lifecycle script: ${lifecycle_script}" >&2
@@ -122,11 +130,13 @@ build_arch() {
 
   (
     cd "${repo_dir}"
-    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE=1 NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+    export NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+      NFPM_LICENSE="${license_file}" NFPM_NOTICE="${notice_file}"
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE=1 NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager rpm --target "${rpm_file}"
-    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager deb --target "${deb_file}"
-    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" \
       nfpm package --config "${nfpm_config}" --packager apk --target "${apk_file}"
   )
 

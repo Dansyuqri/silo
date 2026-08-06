@@ -42,6 +42,60 @@ contents:
       mode: 0644
       owner: root
       group: root
+  # The license materials are declared once per packager: nfpm only honors
+  # type: license on rpm and silently drops such entries from deb and apk, so
+  # the rpm keeps its %license flag while deb and apk carry plain files at the
+  # same path.
+  - src: ${NFPM_LICENSE}
+    dst: /usr/share/doc/silo/LICENSE
+    type: license
+    packager: rpm
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_NOTICE}
+    dst: /usr/share/doc/silo/NOTICE
+    type: license
+    packager: rpm
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_LICENSE}
+    dst: /usr/share/doc/silo/LICENSE
+    packager: deb
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_NOTICE}
+    dst: /usr/share/doc/silo/NOTICE
+    packager: deb
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_LICENSE}
+    dst: /usr/share/doc/silo/LICENSE
+    packager: apk
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_NOTICE}
+    dst: /usr/share/doc/silo/NOTICE
+    packager: apk
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
 
 scripts:
   postinstall: buildscripts/package/postinstall.sh

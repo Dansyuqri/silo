@@ -126,7 +126,7 @@ jobs:
             archive="${assets_dir}/silo_${PKG_VERSION}_linux_${arch}.tar.gz"
             mkdir -p "${context}/dockerscripts"
             tar -xzf "${archive}" -C "${context}" silo
-            cp Dockerfile.goreleaser LICENSE CREDITS "${context}/"
+            cp Dockerfile.goreleaser LICENSE NOTICE CREDITS "${context}/"
             cp dockerscripts/docker-entrypoint.sh dockerscripts/download-static-curl.sh \
               "${context}/dockerscripts/"
           done

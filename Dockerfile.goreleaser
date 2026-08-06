@@ -91,6 +91,7 @@ COPY --from=build /go/bin/mcli /usr/bin/mcli
 COPY --from=build /go/bin/curl* /usr/bin/
 COPY dockerscripts/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
 COPY LICENSE /licenses/LICENSE
+COPY NOTICE /licenses/NOTICE
 COPY CREDITS /licenses/CREDITS
 
 RUN chmod +x /usr/bin/silo /usr/bin/mcli /usr/bin/docker-entrypoint.sh && \
