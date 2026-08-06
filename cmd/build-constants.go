@@ -49,20 +49,22 @@ var (
 	// MinioOSARCH - OS and ARCH.
 	minioOSARCH = runtime.GOOS + "-" + runtime.GOARCH
 
-	// MinioReleaseBaseURL - release url without os and arch.
-	MinioReleaseBaseURL = "https://dl.min.io/server/minio/release/"
+	// MinioReleaseBaseURL is retained for source compatibility. Silo does not
+	// provide an in-place update endpoint.
+	MinioReleaseBaseURL = ""
 
 	// MinioReleaseURL - release URL.
 	MinioReleaseURL = MinioReleaseBaseURL + minioOSARCH + SlashSeparator
 
-	// MinioStoreName - MinIO store name.
-	MinioStoreName = "MinIO"
+	// MinioStoreName - Silo product name. The identifier is retained to avoid a
+	// source-only rename across compatibility-sensitive code.
+	MinioStoreName = "Silo"
 
-	// MinioUAName - MinIO user agent name.
-	MinioUAName = "MinIO"
+	// MinioUAName - Silo user agent name.
+	MinioUAName = "Silo"
 
-	// MinioBannerName - MinIO banner name for startup message.
-	MinioBannerName = "MinIO Object Storage Server"
+	// MinioBannerName - Silo banner name for startup message.
+	MinioBannerName = "Silo Object Storage Server"
 
 	// MinioLicense - MinIO server license.
 	MinioLicense = "GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html"

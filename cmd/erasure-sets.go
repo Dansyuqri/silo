@@ -1051,7 +1051,7 @@ func (s *erasureSets) HealFormat(ctx context.Context, dryRun bool) (res madmin.H
 
 	if !reflect.DeepEqual(s.format, refFormat) {
 		// Format is corrupted and unrecognized by the running instance.
-		healingLogIf(ctx, fmt.Errorf("Unable to heal the newly replaced drives due to format.json inconsistencies, please engage MinIO support for further assistance: %w",
+		healingLogIf(ctx, fmt.Errorf("Unable to heal the newly replaced drives due to format.json inconsistencies; please report this to Silo maintainers at https://github.com/pgsty/minio/issues: %w",
 			errCorruptedFormat))
 		return res, errCorruptedFormat
 	}

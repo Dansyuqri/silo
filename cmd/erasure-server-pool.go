@@ -307,7 +307,7 @@ func (z *erasureServerPools) GetRawData(ctx context.Context, volume, file string
 						r = io.NopCloser(bytes.NewBuffer([]byte{}))
 					}
 					// Keep disk path instead of ID, to ensure that the downloaded zip file can be
-					// easily automated with `minio server hostname{1...n}/disk{1...m}`.
+					// easily automated with `silo server hostname{1...n}/disk{1...m}`.
 					err = fn(r, disk.Hostname(), disk.Endpoint().Path, pathJoin(volume, si.Name), si)
 					r.Close()
 					if err != nil {

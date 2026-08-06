@@ -83,7 +83,7 @@ func init() {
 		if mousetrap.StartedByExplorer() {
 			fmt.Printf("Don't double-click %s\n", os.Args[0])
 			fmt.Println("You need to open cmd.exe/PowerShell and run it from the command line")
-			fmt.Println("Refer to the docs here on how to run it as a Windows Service https://github.com/minio/minio-service/tree/master/windows")
+			fmt.Println("See Silo deployment documentation: https://silo.pgsty.com/operations/deployments/")
 			fmt.Println("Press the Enter Key to Exit")
 			fmt.Scanln()
 			os.Exit(1)
@@ -295,42 +295,6 @@ func initConsoleServer() (*consoleapi.Server, error) {
 	return server, nil
 }
 
-// Check for updates and print a notification message
-func checkUpdate(mode string) {
-	updateURL := minioReleaseInfoURL
-	if runtime.GOOS == globalWindowsOSName {
-		updateURL = minioReleaseWindowsInfoURL
-	}
-
-	u, err := url.Parse(updateURL)
-	if err != nil {
-		return
-	}
-
-	if currentReleaseTime.IsZero() {
-		return
-	}
-
-	_, lrTime, err := getLatestReleaseTime(u, 2*time.Second, mode)
-	if err != nil {
-		return
-	}
-
-	var older time.Duration
-	var downloadURL string
-	if lrTime.After(currentReleaseTime) {
-		older = lrTime.Sub(currentReleaseTime)
-		downloadURL = getDownloadURL(releaseTimeToReleaseTag(lrTime))
-	}
-
-	updateMsg := prepareUpdateMessage(downloadURL, older)
-	if updateMsg == "" {
-		return
-	}
-
-	logger.Info(prepareUpdateMessage("Run `mc admin update ALIAS`", lrTime.Sub(currentReleaseTime)))
-}
-
 func newConfigDir(dir string, dirSet bool, getDefaultDir func() string) (*ConfigDir, error) {
 	if dir == "" {
 		dir = getDefaultDir()
@@ -510,6 +474,16 @@ func handleCommonArgs(ctxt serverCtxt) {
 	var err error
 	globalConfigDir, err = newConfigDir(configDir, configSet, defaultConfigDir.Get)
 	logger.FatalIf(err, "Unable to initialize the (deprecated) config directory")
+	if !configSet {
+		defaultConfigDirWarningOnce.Do(func() {
+			switch defaultConfigDirSelection {
+			case defaultConfigDirLegacy:
+				logger.Info("Using legacy MinIO configuration directory %s because %s does not exist; no files were moved", defaultConfigDir.Get(), filepath.Join(filepath.Dir(defaultConfigDir.Get()), defaultSiloConfigDir))
+			case defaultConfigDirAmbiguous:
+				logger.Warning("Both Silo and legacy MinIO configuration directories exist; using %s. Set --config-dir explicitly before changing either directory", defaultConfigDir.Get())
+			}
+		})
+	}
 	globalCertsDir, err = newConfigDir(certsDir, certsSet, defaultCertsDir.Get)
 	logger.FatalIf(err, "Unable to initialize the certs directory")
 
@@ -730,7 +704,7 @@ func serverHandleEnvVars() {
 			}
 			// Look for if URL has invalid values and return error.
 			if !isValidURLEndpoint((*url.URL)(u)) {
-				err := fmt.Errorf("URL contains unexpected resources, expected URL to be one of http(s)://console.example.com or as a subpath via API endpoint http(s)://minio.example.com/minio format: %v", u)
+				err := fmt.Errorf("URL contains unexpected resources, expected URL to be one of http(s)://console.example.com or a /minio subpath on an API endpoint such as http(s)://silo.example.com/minio: %v", u)
 				logger.Fatal(err, "Invalid MINIO_BROWSER_REDIRECT_URL value is environment variable")
 			}
 			globalBrowserRedirectURL = u
@@ -745,7 +719,7 @@ func serverHandleEnvVars() {
 		}
 		// Look for if URL has invalid values and return error.
 		if !isValidURLEndpoint((*url.URL)(u)) {
-			err := fmt.Errorf("URL contains unexpected resources, expected URL to be of http(s)://minio.example.com format: %v", u)
+			err := fmt.Errorf("URL contains unexpected resources, expected a URL such as http(s)://silo.example.com: %v", u)
 			logger.Fatal(err, "Invalid MINIO_SERVER_URL value is environment variable")
 		}
 		u.Path = "" // remove any path component such as `/`
@@ -798,7 +772,7 @@ func serverHandleEnvVars() {
 				// Checking if the IP is a DNS entry.
 				addrs, err := globalDNSCache.LookupHost(GlobalContext, endpoint)
 				if err != nil {
-					logger.FatalIf(err, "Unable to initialize MinIO server with [%s] invalid entry found in MINIO_PUBLIC_IPS", endpoint)
+					logger.FatalIf(err, "Unable to initialize Silo server with [%s] invalid entry found in MINIO_PUBLIC_IPS", endpoint)
 				}
 				for _, addr := range addrs {
 					domainIPs.Add(addr)
@@ -817,10 +791,13 @@ func serverHandleEnvVars() {
 		updateDomainIPs(domainIPs)
 	}
 
-	// In place update is true by default if the MINIO_UPDATE is not set
-	// or is not set to 'off', if MINIO_UPDATE is set to 'off' then
-	// in-place update is off.
-	globalInplaceUpdateDisabled = strings.EqualFold(env.Get(config.EnvUpdate, config.EnableOn), config.EnableOff)
+	// MINIO_UPDATE remains accepted for configuration compatibility, but Silo is
+	// upgraded only through packages, images, or an orchestrator. It cannot
+	// re-enable the inherited in-place updater.
+	if updateSetting := env.Get(config.EnvUpdate, config.EnableOff); !strings.EqualFold(updateSetting, config.EnableOff) {
+		logger.Warning("%s=%s is ignored: Silo in-place updates are permanently disabled", config.EnvUpdate, updateSetting)
+	}
+	globalInplaceUpdateDisabled = true
 
 	// Check if the supported credential env vars,
 	// "MINIO_ROOT_USER" and "MINIO_ROOT_PASSWORD" are provided
@@ -829,14 +806,14 @@ func serverHandleEnvVars() {
 	// Check all error conditions first
 	//nolint:gocritic
 	if !env.IsSet(config.EnvRootUser) && env.IsSet(config.EnvRootPassword) {
-		logger.Fatal(config.ErrMissingEnvCredentialRootUser(nil), "Unable to start MinIO")
+		logger.Fatal(config.ErrMissingEnvCredentialRootUser(nil), "Unable to start Silo")
 	} else if env.IsSet(config.EnvRootUser) && !env.IsSet(config.EnvRootPassword) {
-		logger.Fatal(config.ErrMissingEnvCredentialRootPassword(nil), "Unable to start MinIO")
+		logger.Fatal(config.ErrMissingEnvCredentialRootPassword(nil), "Unable to start Silo")
 	} else if !env.IsSet(config.EnvRootUser) && !env.IsSet(config.EnvRootPassword) {
 		if !env.IsSet(config.EnvAccessKey) && env.IsSet(config.EnvSecretKey) {
-			logger.Fatal(config.ErrMissingEnvCredentialAccessKey(nil), "Unable to start MinIO")
+			logger.Fatal(config.ErrMissingEnvCredentialAccessKey(nil), "Unable to start Silo")
 		} else if env.IsSet(config.EnvAccessKey) && !env.IsSet(config.EnvSecretKey) {
-			logger.Fatal(config.ErrMissingEnvCredentialSecretKey(nil), "Unable to start MinIO")
+			logger.Fatal(config.ErrMissingEnvCredentialSecretKey(nil), "Unable to start Silo")
 		}
 	}
 

@@ -172,7 +172,7 @@ func (n NATSArgs) Validate() error {
 
 // To obtain a nats connection from args.
 func (n NATSArgs) connectNats() (*nats.Conn, error) {
-	connOpts := []nats.Option{nats.Name("Minio Notification"), nats.MaxReconnects(-1)}
+	connOpts := []nats.Option{nats.Name("Silo Notification"), nats.MaxReconnects(-1)}
 	if n.Username != "" && n.Password != "" {
 		connOpts = append(connOpts, nats.UserInfo(n.Username, n.Password))
 	}

@@ -20,6 +20,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -35,6 +36,9 @@ import (
 )
 
 func TestDownloadBinaryReturnsOwnedBuffers(t *testing.T) {
+	previousDisabled := globalInplaceUpdateDisabled
+	globalInplaceUpdateDisabled = false
+	t.Cleanup(func() { globalInplaceUpdateDisabled = previousDisabled })
 	previousMaxProcs := runtime.GOMAXPROCS(1)
 	t.Cleanup(func() {
 		runtime.GOMAXPROCS(previousMaxProcs)
@@ -93,6 +97,19 @@ func TestDownloadBinaryReturnsOwnedBuffers(t *testing.T) {
 	}
 	if !bytes.Equal(downloaded, wantDownloaded) {
 		t.Fatal("downloaded binary aliases a buffer returned to bytebufferpool")
+	}
+}
+
+func TestInplaceUpdateCannotBeEnabled(t *testing.T) {
+	previousDisabled := globalInplaceUpdateDisabled
+	globalInplaceUpdateDisabled = true
+	t.Cleanup(func() { globalInplaceUpdateDisabled = previousDisabled })
+
+	if err := verifyBinary(nil, nil, "", "", nil); !errors.Is(err, errInplaceUpdateDisabled) {
+		t.Fatalf("verifyBinary error = %v, want %v", err, errInplaceUpdateDisabled)
+	}
+	if err := commitBinary(); !errors.Is(err, errInplaceUpdateDisabled) {
+		t.Fatalf("commitBinary error = %v, want %v", err, errInplaceUpdateDisabled)
 	}
 }
 
@@ -167,19 +184,11 @@ func TestDownloadURL(t *testing.T) {
 	minioVersion1 := releaseTimeToReleaseTag(UTCNow())
 	durl := getDownloadURL(minioVersion1)
 	if IsDocker() {
-		if durl != "podman pull quay.io/minio/minio:"+minioVersion1 {
-			t.Errorf("Expected %s, got %s", "podman pull quay.io/minio/minio:"+minioVersion1, durl)
+		if durl != "podman pull docker.io/pgsty/silo:"+minioVersion1 {
+			t.Errorf("Expected %s, got %s", "podman pull docker.io/pgsty/silo:"+minioVersion1, durl)
 		}
-	} else {
-		if runtime.GOOS == "windows" {
-			if durl != MinioReleaseURL+"minio.exe" {
-				t.Errorf("Expected %s, got %s", MinioReleaseURL+"minio.exe", durl)
-			}
-		} else {
-			if durl != MinioReleaseURL+"minio" {
-				t.Errorf("Expected %s, got %s", MinioReleaseURL+"minio", durl)
-			}
-		}
+	} else if durl != siloDownloadPage {
+		t.Errorf("Expected %s, got %s", siloDownloadPage, durl)
 	}
 
 	t.Setenv("KUBERNETES_SERVICE_HOST", "10.11.148.5")
@@ -207,19 +216,19 @@ func TestUserAgent(t *testing.T) {
 			envName:     "",
 			envValue:    "",
 			mode:        globalMinioModeFS,
-			expectedStr: fmt.Sprintf("MinIO (%s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET", runtime.GOOS, runtime.GOARCH, globalMinioModeFS),
+			expectedStr: fmt.Sprintf("Silo (%s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET", runtime.GOOS, runtime.GOARCH, globalMinioModeFS),
 		},
 		{
 			envName:     "MESOS_CONTAINER_NAME",
 			envValue:    "mesos-11111",
 			mode:        globalMinioModeErasure,
-			expectedStr: fmt.Sprintf("MinIO (%s; %s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET universe-%s", runtime.GOOS, runtime.GOARCH, globalMinioModeErasure, "dcos", "mesos-1111"),
+			expectedStr: fmt.Sprintf("Silo (%s; %s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET universe-%s", runtime.GOOS, runtime.GOARCH, globalMinioModeErasure, "dcos", "mesos-1111"),
 		},
 		{
 			envName:     "KUBERNETES_SERVICE_HOST",
 			envValue:    "10.11.148.5",
 			mode:        globalMinioModeErasure,
-			expectedStr: fmt.Sprintf("MinIO (%s; %s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET", runtime.GOOS, runtime.GOARCH, globalMinioModeErasure, "kubernetes"),
+			expectedStr: fmt.Sprintf("Silo (%s; %s; %s; %s; source DEVELOPMENT.GOGET DEVELOPMENT.GOGET DEVELOPMENT.GOGET", runtime.GOOS, runtime.GOARCH, globalMinioModeErasure, "kubernetes"),
 		},
 	}
 

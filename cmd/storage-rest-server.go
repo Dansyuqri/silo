@@ -1112,17 +1112,17 @@ func logFatalErrs(err error, endpoint Endpoint, exit bool) {
 	case errors.Is(err, errUnsupportedDisk):
 		var hint string
 		if endpoint.URL != nil {
-			hint = fmt.Sprintf("Drive '%s' does not support O_DIRECT flags, MinIO erasure coding requires filesystems with O_DIRECT support", endpoint.Path)
+			hint = fmt.Sprintf("Drive '%s' does not support O_DIRECT flags, Silo erasure coding requires filesystems with O_DIRECT support", endpoint.Path)
 		} else {
-			hint = "Drives do not support O_DIRECT flags, MinIO erasure coding requires filesystems with O_DIRECT support"
+			hint = "Drives do not support O_DIRECT flags, Silo erasure coding requires filesystems with O_DIRECT support"
 		}
 		logger.Fatal(config.ErrUnsupportedBackend(err).Hint("%s", hint), "Unable to initialize backend")
 	case errors.Is(err, errDiskNotDir):
 		var hint string
 		if endpoint.URL != nil {
-			hint = fmt.Sprintf("Drive '%s' is not a directory, MinIO erasure coding needs a directory", endpoint.Path)
+			hint = fmt.Sprintf("Drive '%s' is not a directory, Silo erasure coding needs a directory", endpoint.Path)
 		} else {
-			hint = "Drives are not directories, MinIO erasure coding needs directories"
+			hint = "Drives are not directories, Silo erasure coding needs directories"
 		}
 		logger.Fatal(config.ErrUnableToWriteInBackend(err).Hint("%s", hint), "Unable to initialize backend")
 	case errors.Is(err, errDiskAccessDenied):

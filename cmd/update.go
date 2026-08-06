@@ -51,6 +51,8 @@ const (
 )
 
 var (
+	errInplaceUpdateDisabled = errors.New("Silo in-place updates are disabled; use a package, image, or orchestrator upgrade")
+
 	// Newer official download info URLs appear earlier below.
 	minioReleaseInfoURL = MinioReleaseURL + "minio.sha256sum"
 
@@ -223,13 +225,10 @@ func IsPCFTile() bool {
 	return env.Get("MINIO_PCF_TILE_VERSION", "") != ""
 }
 
-// DO NOT CHANGE USER AGENT STYLE.
-// The style should be
+// Keep the inherited user agent field order stable while identifying Silo as
+// the maintained product. The style is:
 //
-//	MinIO (<OS>; <ARCH>[; <MODE>][; dcos][; kubernetes][; docker][; source]) MinIO/<VERSION> MinIO/<RELEASE-TAG> MinIO/<COMMIT-ID> [MinIO/universe-<PACKAGE-NAME>] [MinIO/helm-<HELM-VERSION>]
-//
-// Any change here should be discussed by opening an issue at
-// https://github.com/minio/minio/issues.
+//	Silo (<OS>; <ARCH>[; <MODE>][; dcos][; kubernetes][; docker][; source]) <VERSION> <RELEASE-TAG> <COMMIT-ID> [universe-<PACKAGE-NAME>] [helm-<HELM-VERSION>]
 func getUserAgent(mode string) string {
 	userAgentParts := []string{}
 	// Helper function to concisely append a pair of strings to a
@@ -438,22 +437,14 @@ func getUpdateTransport(timeout time.Duration) http.RoundTripper {
 	return updateTransport
 }
 
-func getLatestReleaseTime(u *url.URL, timeout time.Duration, mode string) (sha256Sum []byte, releaseTime time.Time, err error) {
-	data, err := downloadReleaseURL(u, timeout, mode)
-	if err != nil {
-		return sha256Sum, releaseTime, err
-	}
-
-	sha256Sum, releaseTime, _, err = parseReleaseData(data)
-	return sha256Sum, releaseTime, err
-}
-
 const (
 	// Kubernetes deployment doc link.
 	kubernetesDeploymentDoc = "https://silo.pgsty.com/operations/deployments/kubernetes/"
 
 	// Mesos deployment doc link.
 	mesosDeploymentDoc = "https://silo.pgsty.com/operations/deployments/kubernetes/"
+
+	siloDownloadPage = "https://silo.pgsty.com/download/"
 )
 
 func getDownloadURL(releaseTag string) (downloadURL string) {
@@ -472,15 +463,11 @@ func getDownloadURL(releaseTag string) (downloadURL string) {
 	// Check if we are docker environment, return docker update command
 	if IsDocker() {
 		// Construct release tag name.
-		return fmt.Sprintf("podman pull quay.io/minio/minio:%s", releaseTag)
+		return fmt.Sprintf("podman pull docker.io/pgsty/silo:%s", releaseTag)
 	}
 
-	// For binary only installations, we return link to the latest binary.
-	if runtime.GOOS == "windows" {
-		return MinioReleaseURL + "minio.exe"
-	}
-
-	return MinioReleaseURL + "minio"
+	// Binary installations are upgraded from a verified release artifact.
+	return siloDownloadPage
 }
 
 func getUpdateReaderFromURL(u *url.URL, transport http.RoundTripper, mode string) (io.ReadCloser, error) {
@@ -551,11 +538,15 @@ func downloadBinary(u *url.URL, mode string) (binCompressed []byte, bin []byte, 
 }
 
 const (
-	// Update this whenever the official minisign pubkey is rotated.
-	defaultMinisignPubkey = "RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav"
+	// Silo has no in-place update trust root. The environment key remains
+	// recognized by inherited code but cannot re-enable the disabled updater.
+	defaultMinisignPubkey = ""
 )
 
 func verifyBinary(u *url.URL, sha256Sum []byte, releaseInfo, mode string, reader io.Reader) (err error) {
+	if globalInplaceUpdateDisabled {
+		return errInplaceUpdateDisabled
+	}
 	if !updateInProgress.CompareAndSwap(0, 1) {
 		return errors.New("update already in progress")
 	}
@@ -610,6 +601,9 @@ func verifyBinary(u *url.URL, sha256Sum []byte, releaseInfo, mode string, reader
 }
 
 func commitBinary() (err error) {
+	if globalInplaceUpdateDisabled {
+		return errInplaceUpdateDisabled
+	}
 	if !updateInProgress.CompareAndSwap(0, 1) {
 		return errors.New("update already in progress")
 	}

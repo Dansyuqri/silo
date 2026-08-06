@@ -1154,7 +1154,7 @@ var errorCodes = errorCodeMap{
 	},
 	ErrUnsupportedNotification: {
 		Code:           "UnsupportedNotification",
-		Description:    "MinIO server does not support Topic or Cloud Function based notifications.",
+		Description:    "Silo does not support Topic or Cloud Function based notifications.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrInvalidCopyPartRange: {
