@@ -61,8 +61,9 @@ var healthcheckFlags = []cli.Flag{
 		EnvVar: "MINIO_ADDRESS",
 	},
 	cli.StringFlag{
-		Name:  "url",
-		Usage: "probe this base URL (http[s]://HOST:PORT) instead of deriving one from --address and the certs directory",
+		Name:   "url",
+		Usage:  "probe this base URL (http[s]://HOST:PORT) instead of deriving one from --address and the certs directory",
+		EnvVar: "MINIO_HEALTHCHECK_URL",
 	},
 	cli.BoolFlag{
 		Name:  "maintenance",
@@ -152,7 +153,8 @@ func (r healthcheckResult) line() string {
 
 // healthcheckTarget derives the base URL to probe. An explicit rawURL wins;
 // otherwise the address' host:port is used, with the scheme decided by the
-// same certificate presence check the server performs at startup.
+// same certificate presence check the server performs at startup. URLs are
+// serialized via url.URL so IPv6 zone identifiers survive as %25-escapes.
 func healthcheckTarget(rawURL, address, certsDir string) (string, error) {
 	if rawURL != "" {
 		u, err := url.Parse(rawURL)
@@ -162,7 +164,7 @@ func healthcheckTarget(rawURL, address, certsDir string) (string, error) {
 		if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			return "", fmt.Errorf("invalid --url %q: expected http[s]://HOST:PORT", rawURL)
 		}
-		return u.Scheme + "://" + u.Host, nil
+		return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String(), nil
 	}
 
 	host, port, err := net.SplitHostPort(address)
@@ -176,7 +178,7 @@ func healthcheckTarget(rawURL, address, certsDir string) (string, error) {
 	if isFile(filepath.Join(certsDir, publicCertFile)) && isFile(filepath.Join(certsDir, privateKeyFile)) {
 		scheme = "https"
 	}
-	return scheme + "://" + net.JoinHostPort(host, port), nil
+	return (&url.URL{Scheme: scheme, Host: net.JoinHostPort(host, port)}).String(), nil
 }
 
 // probeHealth performs one bounded, strictly anonymous GET against the
@@ -282,8 +284,8 @@ func healthcheckMain(ctx *cli.Context) {
 
 	res := probeHealth(baseURL, check, ctx.Bool("maintenance"), timeout)
 
-	quiet := ctx.IsSet("quiet") || ctx.GlobalIsSet("quiet")
-	if ctx.IsSet("json") || ctx.GlobalIsSet("json") {
+	quiet := ctx.Bool("quiet") || ctx.GlobalBool("quiet")
+	if ctx.Bool("json") || ctx.GlobalBool("json") {
 		buf, jerr := json.Marshal(res)
 		if jerr != nil {
 			fail("%v", jerr)

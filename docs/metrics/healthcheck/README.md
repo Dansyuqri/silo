@@ -10,12 +10,12 @@ The `silo` binary can probe those endpoints itself, which makes health checking 
 silo healthcheck [FLAGS] [live|ready|cluster|cluster-read]
 ```
 
-The check name maps 1:1 onto `/minio/health/<path>`; `live` is the default. The exit code is `0` when healthy and `1` otherwise, and one diagnostic line (including the `x-minio-server-status` and quorum headers on failure) is printed for `docker inspect` to capture. The probe target is derived the same way the server derives its own listen address — `--address` / `MINIO_ADDRESS`, with HTTPS auto-detected from `public.crt` and `private.key` in `--certs-dir` — or overridden wholesale with `--url`. Certificate verification is skipped, matching the kubelet's behavior for HTTPS probes.
+The check name maps 1:1 onto `/minio/health/<path>`; `live` is the default. The exit code is `0` when healthy and `1` otherwise, and one diagnostic line (including the `x-minio-server-status` and quorum headers on failure) is printed for `docker inspect` to capture. The probe target is derived the same way the server derives its own listen address — `--address` / `MINIO_ADDRESS`, with HTTPS auto-detected from `public.crt` and `private.key` in `--certs-dir` — or overridden wholesale with `--url` / `MINIO_HEALTHCHECK_URL`. The environment form exists for containers with a baked-in `HEALTHCHECK`: a probe process cannot see the server's command line, so when the server's address or TLS setup comes from CLI arguments rather than the environment, set `MINIO_HEALTHCHECK_URL` (e.g. `https://127.0.0.1:9010`) to point the built-in probe at it. Certificate verification is skipped, matching the kubelet's behavior for HTTPS probes.
 
-Use it as an image `HEALTHCHECK` (exec form, since there may be no shell):
+Use it as an image `HEALTHCHECK` (exec form, since there may be no shell; keep the outer timeout above the probe's own 5s deadline so its diagnostic line survives):
 
 ```
-HEALTHCHECK --interval=30s --timeout=5s --start-period=2m --start-interval=2s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=2m --start-interval=2s --retries=3 \
   CMD ["/usr/bin/silo", "healthcheck", "ready"]
 ```
 
@@ -25,7 +25,7 @@ or as a Docker Compose healthcheck:
 healthcheck:
   test: ["CMD", "/usr/bin/silo", "healthcheck", "ready"]
   interval: 5s
-  timeout: 5s
+  timeout: 10s
   retries: 5
 ```
 

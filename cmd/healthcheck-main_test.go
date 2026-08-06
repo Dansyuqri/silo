@@ -54,6 +54,9 @@ func TestHealthcheckTarget(t *testing.T) {
 	}{
 		{name: "default address", address: ":9000", certsDir: plainDir, want: "http://127.0.0.1:9000"},
 		{name: "explicit host", address: "10.0.0.7:9010", certsDir: plainDir, want: "http://10.0.0.7:9010"},
+		{name: "ipv6 address", address: "[::1]:9000", certsDir: plainDir, want: "http://[::1]:9000"},
+		{name: "ipv6 zone is escaped", address: "[fe80::1%eth0]:9000", certsDir: plainDir, want: "http://[fe80::1%25eth0]:9000"},
+		{name: "ipv6 zone in url", rawURL: "http://[fe80::1%25eth0]:9000", certsDir: plainDir, want: "http://[fe80::1%25eth0]:9000"},
 		{name: "tls certs present", address: ":9000", certsDir: tlsDir, want: "https://127.0.0.1:9000"},
 		{name: "cert without key stays http", address: ":9000", certsDir: halfDir, want: "http://127.0.0.1:9000"},
 		{name: "url override wins", rawURL: "https://silo.internal:9000", address: ":9000", certsDir: plainDir, want: "https://silo.internal:9000"},

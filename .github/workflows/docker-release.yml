@@ -220,6 +220,21 @@ jobs:
             org.opencontainers.image.created=${{ env.PUBLISHED_AT }}
             org.opencontainers.image.revision=${{ env.RELEASE_REVISION }}
 
+      - name: Verify HEALTHCHECK survived the distroless push
+        run: |
+          set -euo pipefail
+          # HEALTHCHECK is a Docker extension absent from the OCI image
+          # spec, and a publish path can drop it silently. Check the pushed
+          # architecture image now, before the versioned and rolling
+          # multi-arch manifests are created, so a broken health config
+          # stops their promotion. (The architecture-suffixed tags above
+          # are already public by this point - full staging-then-promote
+          # would be a workflow-wide redesign shared with the classic
+          # image lanes.)
+          docker pull "pgsty/silo:${RELEASE_TAG}-distroless-amd64" >/dev/null
+          test "$(docker inspect -f '{{json .Config.Healthcheck.Test}}' "pgsty/silo:${RELEASE_TAG}-distroless-amd64")" \
+            = '["CMD","/usr/bin/silo","healthcheck","ready"]'
+
       - name: Publish multi-architecture manifests
         run: |
           set -euo pipefail
@@ -274,17 +289,6 @@ jobs:
           fi
           echo "SILO_DISTROLESS_DIGEST=${DISTROLESS_RELEASE_DIGEST}" >> "${GITHUB_ENV}"
 
-      - name: Verify HEALTHCHECK survived the distroless publish
-        run: |
-          set -euo pipefail
-          # HEALTHCHECK is a Docker extension absent from the OCI image
-          # spec, and OCI-media-type publishes can drop it silently. If the
-          # pushed image lost it, the pilot's zero-config compose health
-          # gating disappears - treat that as a release blocker.
-          docker pull "pgsty/silo:${RELEASE_TAG}-distroless" >/dev/null
-          docker inspect -f '{{json .Config.Healthcheck.Test}}' "pgsty/silo:${RELEASE_TAG}-distroless" \
-            | grep -F '"healthcheck"'
-
       - name: Generate architecture image SBOMs
         env:
           AMD64_DIGEST: ${{ steps.build-amd64.outputs.digest }}
@@ -295,13 +299,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p docker-release/sbom
+          # Each per-architecture digest names an OCI index (image plus the
+          # provenance attestation buildx attaches), and Syft's platform
+          # default on an index follows the amd64 runner - an arm64-only
+          # index would fail outright. Select the platform explicitly.
           syft "registry:index.docker.io/pgsty/silo@${AMD64_DIGEST}" \
+            --platform linux/amd64 \
             --output "spdx-json=docker-release/sbom/linux-amd64.spdx.json"
           syft "registry:index.docker.io/pgsty/silo@${ARM64_DIGEST}" \
+            --platform linux/arm64 \
             --output "spdx-json=docker-release/sbom/linux-arm64.spdx.json"
           syft "registry:index.docker.io/pgsty/silo@${DISTROLESS_AMD64_DIGEST}" \
+            --platform linux/amd64 \
             --output "spdx-json=docker-release/sbom/linux-amd64-distroless.spdx.json"
           syft "registry:index.docker.io/pgsty/silo@${DISTROLESS_ARM64_DIGEST}" \
+            --platform linux/arm64 \
             --output "spdx-json=docker-release/sbom/linux-arm64-distroless.spdx.json"
 
       - name: Attest amd64 image SBOM

@@ -8,6 +8,8 @@ on:
       - ".github/nfpm.yml"
       - "Dockerfile.goreleaser"
       - "Dockerfile.distroless"
+      - "cmd/healthcheck-main.go"
+      - "cmd/main.go"
       - "dockerscripts/download-static-curl.sh"
       - "dockerscripts/docker-entrypoint.sh"
       - "dockerscripts/docker-entrypoint_test.sh"
@@ -401,23 +403,33 @@ jobs:
           docker build -t silo-distroless-test:snapshot -f "${ctx}/Dockerfile.distroless" "${ctx}"
 
           # HEALTHCHECK is a Docker extension absent from the OCI image
-          # spec; assert it survived into the built image config.
-          docker inspect -f '{{json .Config.Healthcheck.Test}}' silo-distroless-test:snapshot \
-            | grep -F '"healthcheck"' >/dev/null
+          # spec; assert the exact probe command survived into the image
+          # config, not merely a substring of it.
+          test "$(docker inspect -f '{{json .Config.Healthcheck.Test}}' silo-distroless-test:snapshot)" \
+            = '["CMD","/usr/bin/silo","healthcheck","ready"]'
 
           # /data ships in the image layer world-writable (issue #55):
-          # there is no entrypoint left to repair ownership at runtime. The
-          # same export proves the image carries the binary and the license
-          # set, and neither a shell nor a legacy /usr/bin/minio.
+          # there is no entrypoint left to repair ownership at runtime.
+          # Export the rootfs once, then assert each required and each
+          # forbidden entry individually: tar's member-argument mode exits
+          # non-zero on any missing name, which under pipefail masks a
+          # found forbidden file, and -tv prints symlinks as 'name ->
+          # target' which defeats $-anchored greps.
           probe="$(docker create silo-distroless-test:snapshot server /data)"
-          docker export "${probe}" | tar -tvf - data usr/bin/silo licenses > "${ctx}/listing.txt"
-          grep -E '^drwxrwxrwx.* data/$' "${ctx}/listing.txt" >/dev/null
-          grep -E ' licenses/(LICENSE|NOTICE|CREDITS)$' "${ctx}/listing.txt" >/dev/null
-          if docker export "${probe}" | tar -tf - bin/sh usr/bin/minio 2>/dev/null | grep -q .; then
-            echo "distroless image unexpectedly contains a shell or /usr/bin/minio"
-            exit 1
-          fi
+          docker export "${probe}" -o "${ctx}/rootfs.tar"
           docker rm "${probe}" >/dev/null
+          tar -tf "${ctx}/rootfs.tar" > "${ctx}/names.txt"
+          tar -tvf "${ctx}/rootfs.tar" > "${ctx}/verbose.txt"
+          grep -E '^drwxrwxrwx.* data/$' "${ctx}/verbose.txt" >/dev/null
+          for want in usr/bin/silo licenses/LICENSE licenses/NOTICE licenses/CREDITS; do
+            grep -Fxq "${want}" "${ctx}/names.txt" || { echo "missing ${want}"; exit 1; }
+          done
+          for forbid in bin/sh usr/bin/sh busybox/sh usr/bin/minio usr/bin/mc usr/bin/mcli; do
+            if grep -Fxq "${forbid}" "${ctx}/names.txt"; then
+              echo "distroless image unexpectedly contains ${forbid}"
+              exit 1
+            fi
+          done
 
           # The baked-in healthcheck must drive Docker's health state on its
           # own, the probe binary must be directly exec-able without any

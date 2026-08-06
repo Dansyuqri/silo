@@ -42,7 +42,9 @@ VOLUME ["/data"]
 # Exec form is mandatory: there is no /bin/sh in this image. `ready`
 # rather than `live` because Docker health feeds start-order gating
 # (readiness semantics); the two are identical unless KMS/etcd are used.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=2m --start-interval=2s --retries=3 \
+# The outer timeout stays above the probe's own 5s deadline so the
+# probe can report its diagnostic line instead of being SIGKILLed.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=2m --start-interval=2s --retries=3 \
   CMD ["/usr/bin/silo", "healthcheck", "ready"]
 
 ENTRYPOINT ["/usr/bin/silo"]
