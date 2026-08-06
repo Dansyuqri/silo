@@ -1,4 +1,4 @@
-name: minio
+name: silo
 arch: ${NFPM_ARCH}
 platform: linux
 version: ${PKG_VERSION}
@@ -7,26 +7,45 @@ release: ${NFPM_RELEASE}
 section: utils
 priority: optional
 maintainer: "Ruohang Feng (@Vonng) <rh@vonng.com>"
-description: S3-Interface Libre Object Storage, Community-maintained MinIO server fork.
+description: S3-Interface Libre Object Storage, a community-maintained S3-compatible server.
 vendor: PGSTY
 homepage: https://silo.pgsty.com
 license: AGPL-3.0-or-later
 
 contents:
   - src: ${NFPM_SOURCE}
-    dst: /usr/local/bin/minio
+    dst: /usr/bin/silo
     expand: true
     file_info:
       mode: 0755
       owner: root
       group: root
   - src: ${NFPM_UNIT}
-    dst: /usr/lib/systemd/system/minio.service
+    dst: /usr/lib/systemd/system/silo.service
     expand: true
     file_info:
       mode: 0644
       owner: root
       group: root
+  - src: ${NFPM_DEFAULTS}
+    dst: /etc/default/silo
+    type: config|noreplace
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+  - src: ${NFPM_SYSUSERS}
+    dst: /usr/lib/sysusers.d/silo.conf
+    expand: true
+    file_info:
+      mode: 0644
+      owner: root
+      group: root
+
+scripts:
+  postinstall: buildscripts/package/postinstall.sh
+  preremove: buildscripts/package/preremove.sh
 
 rpm:
   group: Applications/File

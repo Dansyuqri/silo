@@ -34,11 +34,29 @@ fi
 # against the config file, so the unit path is passed in absolute. Otherwise
 # this only works when invoked from the repository root and fails elsewhere on
 # a message that names the file rather than the cause.
-unit_file="${repo_dir}/minio.service"
+unit_file="${repo_dir}/silo.service"
+defaults_file="${repo_dir}/silo.env"
+sysusers_file="${repo_dir}/silo.sysusers"
+postinstall_file="${repo_dir}/buildscripts/package/postinstall.sh"
+preremove_file="${repo_dir}/buildscripts/package/preremove.sh"
 if [ ! -f "${unit_file}" ]; then
   echo "Missing systemd unit: ${unit_file}" >&2
   exit 1
 fi
+if [ ! -f "${defaults_file}" ]; then
+  echo "Missing defaults file: ${defaults_file}" >&2
+  exit 1
+fi
+if [ ! -f "${sysusers_file}" ]; then
+  echo "Missing sysusers file: ${sysusers_file}" >&2
+  exit 1
+fi
+for lifecycle_script in "${postinstall_file}" "${preremove_file}"; do
+  if [ ! -x "${lifecycle_script}" ]; then
+    echo "Missing executable package lifecycle script: ${lifecycle_script}" >&2
+    exit 1
+  fi
+done
 
 packages_dir="${dist_dir}/packages"
 mkdir -p "${packages_dir}"
@@ -68,7 +86,7 @@ find_binary() {
   # variants (an added goamd64 level, a stale dist entry) would silently ship a
   # package whose contents do not match its name.
   matches="$(find "${dist_dir}" -maxdepth 2 -type f \
-    -path "${dist_dir}/minio_linux_${goarch}*/minio" | sort)"
+    -path "${dist_dir}/silo_linux_${goarch}*/silo" | sort)"
   count="$(printf '%s' "${matches}" | grep -c . || true)"
 
   if [ "${count}" -eq 0 ]; then
@@ -98,16 +116,19 @@ build_arch() {
 
   # These names are the public download names and must not drift; RPM carries a
   # release number, DEB and APK do not, matching what pkger produced.
-  rpm_file="${packages_dir}/minio-${PKG_VERSION}-1.${rpm_arch}.rpm"
-  deb_file="${packages_dir}/minio_${PKG_VERSION}_${deb_arch}.deb"
-  apk_file="${packages_dir}/minio_${PKG_VERSION}_${apk_arch}.apk"
+  rpm_file="${packages_dir}/silo-${PKG_VERSION}-1.${rpm_arch}.rpm"
+  deb_file="${packages_dir}/silo_${PKG_VERSION}_${deb_arch}.deb"
+  apk_file="${packages_dir}/silo_${PKG_VERSION}_${apk_arch}.apk"
 
-  PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE=1 NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" \
-    nfpm package --config "${nfpm_config}" --packager rpm --target "${rpm_file}"
-  PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" \
-    nfpm package --config "${nfpm_config}" --packager deb --target "${deb_file}"
-  PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" \
-    nfpm package --config "${nfpm_config}" --packager apk --target "${apk_file}"
+  (
+    cd "${repo_dir}"
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE=1 NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+      nfpm package --config "${nfpm_config}" --packager rpm --target "${rpm_file}"
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+      nfpm package --config "${nfpm_config}" --packager deb --target "${deb_file}"
+    PKG_VERSION="${PKG_VERSION}" NFPM_RELEASE='' NFPM_ARCH="${goarch}" NFPM_SOURCE="${source}" NFPM_UNIT="${unit_file}" NFPM_DEFAULTS="${defaults_file}" NFPM_SYSUSERS="${sysusers_file}" \
+      nfpm package --config "${nfpm_config}" --packager apk --target "${apk_file}"
+  )
 
   sha256_file "${rpm_file}"
   sha256_file "${deb_file}"

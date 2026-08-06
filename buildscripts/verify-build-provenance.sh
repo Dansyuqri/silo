@@ -41,7 +41,7 @@ while IFS= read -r binary; do
     grep -F 'vcs.' <<< "${info}" >&2 || true
     exit 1
   fi
-done < <(find "${dist_dir}" -maxdepth 2 -type f \( -name 'minio' -o -name 'minio.exe' \) | sort)
+done < <(find "${dist_dir}" -maxdepth 2 -type f \( -name 'silo' -o -name 'silo.exe' \) | sort)
 
 if [ "${count}" -ne "${expected_count}" ]; then
   echo "Expected ${expected_count} release binaries, found ${count}" >&2

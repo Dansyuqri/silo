@@ -1,21 +1,23 @@
 [Unit]
-Description=MinIO
+Description=Silo Object Storage Server
 Documentation=https://silo.pgsty.com/docs/
 Wants=network-online.target
-After=network-online.target
-AssertFileIsExecutable=/usr/local/bin/minio
+After=network-online.target minio.service
+Conflicts=minio.service
+AssertFileIsExecutable=/usr/bin/silo
 
 [Service]
 Type=notify
 
 WorkingDirectory=/usr/local
 
-User=minio-user
-Group=minio-user
+User=silo
+Group=silo
 ProtectProc=invisible
 
 EnvironmentFile=-/etc/default/minio
-ExecStart=/usr/local/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+EnvironmentFile=-/etc/default/silo
+ExecStart=/usr/bin/silo server $MINIO_OPTS $MINIO_VOLUMES
 
 # Let systemd restart this service always
 Restart=always
@@ -32,7 +34,7 @@ TasksMax=infinity
 # Disable timeout logic and wait until process is stopped
 TimeoutSec=infinity
 
-# Disable killing of MinIO by the kernel's OOM killer
+# Disable killing of Silo by the kernel's OOM killer
 OOMScoreAdjust=-1000
 
 SendSIGKILL=no

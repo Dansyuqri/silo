@@ -2,6 +2,7 @@
 cover.out
 *~
 minio
+silo
 !*/
 site/
 **/*.test

@@ -4,9 +4,9 @@ env:
   - CGO_ENABLED=0
 
 builds:
-  - id: minio
+  - id: silo
     main: .
-    binary: minio
+    binary: silo
     goos:
       - linux
       - darwin
@@ -23,18 +23,50 @@ builds:
       - "{{ .Env.LDFLAGS }}"
 
 archives:
-  - id: minio
+  - id: silo
     ids:
-      - minio
-    name_template: "minio_{{ .Env.PKG_VERSION }}_{{ .Os }}_{{ .Arch }}"
+      - silo
+    name_template: "silo_{{ .Env.PKG_VERSION }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
-  name_template: "minio_{{ .Env.PKG_VERSION }}_checksums.txt"
+  name_template: "silo_{{ .Env.PKG_VERSION }}_checksums.txt"
   algorithm: sha256
+
+# Generate one SPDX JSON document per platform archive. SBOMs are created
+# before the checksum stage, so the signed checksum manifest covers both the
+# archives and their corresponding software bills of materials.
+sboms:
+  - id: silo-archives
+    artifacts: archive
+    # Avoid network-backed package enrichment: the release SBOM must be
+    # reproducible from the artifact alone and the PR gate must work offline.
+    args:
+      - "$artifact"
+      - "--output"
+      - "spdx-json=$document"
+    env:
+      - SYFT_FILE_METADATA_CATALOGER_ENABLED=true
+      - SYFT_CHECK_FOR_APP_UPDATE=false
+
+# A keyless Sigstore bundle is the detached signature for the checksum
+# manifest. Consumers can verify the whole archive/SBOM set without trusting a
+# long-lived project key copied into the repository.
+signs:
+  - id: silo-checksums
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - --yes
+    artifacts: checksum
+    output: true
 
 release:
   github:
     owner: pgsty
+    # Transitional until the irreversible GitHub repository rename.
     name: minio
   draft: true
   prerelease: false

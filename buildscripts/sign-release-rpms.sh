@@ -10,12 +10,15 @@ expected_fingerprint="9592A7BC7A682E7333376E09E7935D8DB9BD8B20"
 expected_vendor="PGSTY"
 expected_packager="Ruohang Feng (@Vonng) <rh@vonng.com>"
 expected_url="https://silo.pgsty.com"
-expected_summary="S3-Interface Libre Object Storage, Community-maintained MinIO server fork."
-expected_description="S3-Interface Libre Object Storage, Community-maintained MinIO server fork."
+expected_summary="S3-Interface Libre Object Storage, a community-maintained S3-compatible server."
+expected_description="S3-Interface Libre Object Storage, a community-maintained S3-compatible server."
 expected_license="AGPL-3.0-or-later"
 expected_group="Applications/File"
-expected_payload="/usr/lib/systemd/system/minio.service
-/usr/local/bin/minio"
+expected_payload="/etc/default/silo
+/usr/bin/silo
+/usr/lib/systemd/system/silo.service
+/usr/lib/sysusers.d/silo.conf"
+# Transitional until the irreversible GitHub repository rename.
 repository="${GH_REPO:-pgsty/minio}"
 container="${DNFUPDATE_CONTAINER:-dnfupdate}"
 upload=false
@@ -122,8 +125,8 @@ mkdir -p "${unsigned_dir}" "${signed_dir}"
 chmod 700 "${work_dir}" "${unsigned_dir}" "${signed_dir}"
 
 rpm_files=(
-  "minio-${package_version}-1.x86_64.rpm"
-  "minio-${package_version}-1.aarch64.rpm"
+  "silo-${package_version}-1.x86_64.rpm"
+  "silo-${package_version}-1.aarch64.rpm"
 )
 
 download_patterns=()
@@ -159,7 +162,7 @@ for rpm_file in "${rpm_files[@]}"; do
 done
 
 safe_tag="$(printf '%s' "${release_tag}" | tr -c 'A-Za-z0-9._-' '_')"
-container_dir="/tmp/minio-sign-${safe_tag}-$$"
+container_dir="/tmp/silo-sign-${safe_tag}-$$"
 docker exec "${container}" mkdir -p "${container_dir}"
 
 cleanup_container() {
@@ -203,7 +206,7 @@ for rpm_file in "${rpm_files[@]}"; do
   docker cp "${unsigned_dir}/${rpm_file}" "${container}:${container_dir}/${rpm_file}" >/dev/null
   container_rpm="${container_dir}/${rpm_file}"
 
-  assert_rpm_tag "${container_rpm}" NAME minio
+  assert_rpm_tag "${container_rpm}" NAME silo
   assert_rpm_tag "${container_rpm}" VERSION "${package_version}"
   assert_rpm_tag "${container_rpm}" RELEASE 1
   assert_rpm_tag "${container_rpm}" ARCH "${expected_arch}"
