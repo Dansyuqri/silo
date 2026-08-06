@@ -15,7 +15,7 @@ clusterDomain: cluster.local
 ##
 image:
   repository: pgsty/silo
-  tag: RELEASE.2026-08-04T00-00-00Z
+  tag: RELEASE.2026-08-06T00-00-00Z
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -26,7 +26,7 @@ imagePullSecrets: []
 ##
 mcImage:
   repository: pgsty/silo
-  tag: RELEASE.2026-08-04T00-00-00Z
+  tag: RELEASE.2026-08-06T00-00-00Z
   pullPolicy: IfNotPresent
 
 ## Silo mode, i.e. standalone or distributed.
