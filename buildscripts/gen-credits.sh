@@ -62,7 +62,12 @@ fi
   emit_text "${go_license}"
   printf '\n%s\n\n' "${rule_equal}"
 
-  go list -deps -f '{{if and (not .Standard) .Module}}{{.Module.Path}}{{end}}' . \
+  # The dependency closure is GOOS/GOARCH-specific: platform-only modules
+  # (darwin's go-m1cpu, windows' wmi, ...) enter and leave it with the host.
+  # Pin the primary shipped target and the release build tags so regenerating
+  # CREDITS produces identical output on every machine, including CI.
+  GOOS=linux GOARCH=amd64 go list -deps -tags kqueue \
+    -f '{{if and (not .Standard) .Module}}{{.Module.Path}}{{end}}' . \
     | LC_ALL=C sort -u \
     | grep -vx 'github.com/minio/minio' \
     | xargs go list -m -f '{{.Path}}|{{with .Replace}}{{.Path}}{{end}}|{{.Dir}}' \
