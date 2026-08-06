@@ -285,15 +285,16 @@ func healthcheckMain(ctx *cli.Context) {
 	res := probeHealth(baseURL, check, ctx.Bool("maintenance"), timeout)
 
 	quiet := ctx.Bool("quiet") || ctx.GlobalBool("quiet")
-	if ctx.Bool("json") || ctx.GlobalBool("json") {
+	switch {
+	case ctx.Bool("json") || ctx.GlobalBool("json"):
 		buf, jerr := json.Marshal(res)
 		if jerr != nil {
 			fail("%v", jerr)
 		}
 		fmt.Println(string(buf))
-	} else if !res.Healthy {
+	case !res.Healthy:
 		fmt.Fprintln(os.Stderr, res.line())
-	} else if !quiet {
+	case !quiet:
 		fmt.Println(res.line())
 	}
 
