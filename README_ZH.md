@@ -13,20 +13,20 @@
   <a href="https://silo.pgsty.com/zh/docs/">文档</a> ·
   <a href="https://silo.pgsty.com/zh/download/">下载</a> ·
   <a href="https://silo.pgsty.com/zh/blog/">博客</a> ·
-  <a href="https://github.com/pgsty/minio/releases">版本发布</a> ·
+  <a href="https://github.com/pgsty/silo/releases">版本发布</a> ·
   <a href="SECURITY.md">安全策略</a> ·
   <a href="README.md">English</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/pgsty/minio/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/minio?include_prereleases&label=release&logo=github"></a>
+  <a href="https://github.com/pgsty/silo/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/silo?include_prereleases&label=release&logo=github"></a>
   <a href="https://hub.docker.com/r/pgsty/silo"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/pgsty/silo?logo=docker"></a>
-  <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/minio?logo=go"></a>
+  <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/silo?logo=go"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPLv3-blue"></a>
 </p>
 
 > [!IMPORTANT]
-> Silo 是由 [Pigsty](https://pigsty.cc) 独立维护、从 [`pgsty/minio`](https://github.com/pgsty/minio) 发布的开源 MinIO 社区分支。本项目与 MinIO, Inc. 不存在隶属、背书或赞助关系；文中使用 “MinIO” 仅用于说明上游项目及兼容谱系。
+> Silo 是由 [Pigsty](https://pigsty.cc) 独立维护、从 [`pgsty/silo`](https://github.com/pgsty/silo) 发布的开源 MinIO 社区分支。本项目与 MinIO, Inc. 不存在隶属、背书或赞助关系；文中使用 “MinIO” 仅用于说明上游项目及兼容谱系。
 
 ## 概述
 
@@ -44,8 +44,8 @@ Pigsty 使用本分支提供对象存储，包括 PostgreSQL 备份存储。
 | 安装方式与软件下载 | [下载与安装](https://silo.pgsty.com/zh/download/)（[English](https://silo.pgsty.com/download/)） |
 | 运维、管理、开发与参考指南 | [中文文档](https://silo.pgsty.com/zh/docs/)（[English](https://silo.pgsty.com/docs/)） |
 | 项目动态、版本说明与安全通告 | [博客](https://silo.pgsty.com/zh/blog/)，包括[版本发布](https://silo.pgsty.com/zh/blog/release/)与[安全通告](https://silo.pgsty.com/zh/blog/security/) |
-| 带版本的二进制、校验和与源码归档 | [GitHub Releases](https://github.com/pgsty/minio/releases) |
-| 缺陷报告与功能讨论 | [GitHub Issues](https://github.com/pgsty/minio/issues) |
+| 带版本的二进制、校验和与源码归档 | [GitHub Releases](https://github.com/pgsty/silo/releases) |
+| 缺陷报告与功能讨论 | [GitHub Issues](https://github.com/pgsty/silo/issues) |
 | 私密漏洞报告 | [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) |
 | 许可证、署名与商标信息 | [许可证](https://silo.pgsty.com/zh/about/license/)、[署名归属](https://silo.pgsty.com/zh/about/attribution/)与[商标政策](https://silo.pgsty.com/zh/about/trademark/) |
 
@@ -87,9 +87,9 @@ Silo 自有交付面统一使用 `silo` 可执行文件、软件包、服务、H
 
 | 产物 | 位置 |
 | :-- | :-- |
-| 源码 | [`github.com/pgsty/minio`](https://github.com/pgsty/minio) |
+| 源码 | [`github.com/pgsty/silo`](https://github.com/pgsty/silo) |
 | 容器镜像 | [`pgsty/silo`](https://hub.docker.com/r/pgsty/silo)，支持 `linux/amd64` 与 `linux/arm64` 多架构清单 |
-| 服务端二进制与校验和 | [GitHub Releases](https://github.com/pgsty/minio/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
+| 服务端二进制与校验和 | [GitHub Releases](https://github.com/pgsty/silo/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
 | Linux 软件包 | RPM、DEB、APK，并通过 [Pigsty 软件仓库](https://pigsty.cc/docs/repo/) 分发 |
 | 客户端 | [`pgsty/mc`](https://github.com/pgsty/mc)，容器内以 `mcli` 提供，并保留 `mc` 兼容别名 |
 | 管理控制台 | [`pgsty/silo-console`](https://github.com/pgsty/silo-console)，通过兼容导入路径 `github.com/minio/console` 嵌入服务端构建 |
@@ -118,7 +118,7 @@ cosign verify-blob \
 
 # 在线验证本仓库签发的构建来源。
 gh attestation verify silo_<version>_linux_amd64.tar.gz \
-  --repo pgsty/minio
+  --repo pgsty/silo
 ```
 
 软件包使用 `silo_<version>_packages_checksums.txt` 及其相邻的 Sigstore
@@ -128,7 +128,7 @@ SPDX JSON SBOM。按 digest 验证多架构容器清单的构建来源：
 ```bash
 gh attestation verify \
   oci://index.docker.io/pgsty/silo@sha256:<manifest-digest> \
-  --repo pgsty/minio
+  --repo pgsty/silo
 ```
 
 分架构 SBOM 证明附在 `amd64` 与 `arm64` 平台镜像的 digest 上，而非多架构
@@ -137,7 +137,7 @@ gh attestation verify \
 ```bash
 gh attestation verify \
   oci://index.docker.io/pgsty/silo@sha256:<platform-digest> \
-  --repo pgsty/minio \
+  --repo pgsty/silo \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
 
@@ -233,4 +233,4 @@ Issue 与 Pull Request 应说明受影响版本、复现步骤、影响、预期
 
 服务端继续采用 [GNU Affero General Public License v3.0](LICENSE) 发布。上游作者与署名信息见 [`CREDITS`](CREDITS) 与 [`NOTICE`](NOTICE)。
 
-MinIO 是 MinIO, Inc. 的商标。Silo 是独立社区项目，与 MinIO, Inc. 不存在隶属或背书关系；源码仓库在协调切换完成前暂时保留过渡名称 `pgsty/minio`。
+MinIO 是 MinIO, Inc. 的商标。Silo 是独立社区项目，与 MinIO, Inc. 不存在隶属或背书关系。

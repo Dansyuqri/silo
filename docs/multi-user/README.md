@@ -10,7 +10,7 @@ In this document we will explain in detail on how to configure multiple users.
 
 - Install mc - [Silo Client Quickstart Guide](https://silo.pgsty.com/reference/minio-mc/#quickstart)
 - Install Silo - [Silo Quickstart Guide](https://silo.pgsty.com/operations/deployments/baremetal-deploy-minio-on-redhat-linux/)
-- Configure etcd - [Etcd V3 Quickstart Guide](https://github.com/pgsty/minio/blob/master/docs/sts/etcd.md)
+- Configure etcd - [Etcd V3 Quickstart Guide](https://github.com/pgsty/silo/blob/main/docs/sts/etcd.md)
 
 ### 2. Create a new user with canned policy
 

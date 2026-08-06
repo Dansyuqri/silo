@@ -72,7 +72,7 @@ FROM registry.access.redhat.com/ubi9/ubi-micro:latest
 LABEL org.opencontainers.image.title="Silo" \
       org.opencontainers.image.description="S3-Interface Libre Object Storage" \
       org.opencontainers.image.url="https://silo.pgsty.com" \
-      org.opencontainers.image.source="https://github.com/pgsty/minio" \
+      org.opencontainers.image.source="https://github.com/pgsty/silo" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       maintainer="PGSTY <https://silo.pgsty.com>"
 

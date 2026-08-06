@@ -237,7 +237,7 @@ Silo can connect to other servers, including Silo nodes or other server types su
 
 ## Explore Further
 
-* [TLS Configuration for Silo server on Kubernetes](https://github.com/pgsty/minio/tree/master/docs/tls/kubernetes)
+* [TLS Configuration for Silo server on Kubernetes](https://github.com/pgsty/silo/tree/main/docs/tls/kubernetes)
 * [Silo Client Complete Guide](https://silo.pgsty.com/reference/minio-mc/)
 * [Silo Network Encryption Overview](https://silo.pgsty.com/operations/network-encryption/)
 * [Generate Let's Encrypt Certificate](https://silo.pgsty.com/integrations/generate-lets-encrypt-certificate-using-certbot-for-minio/)

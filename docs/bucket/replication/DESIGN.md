@@ -1,6 +1,6 @@
 # Bucket Replication Design [![Docker Pulls](https://img.shields.io/docker/pulls/pgsty/silo.svg?maxAge=604800)](https://hub.docker.com/r/pgsty/silo/)
 
-This document explains the design approach of server side bucket replication. If you're looking to get started with replication, we suggest you go through the [Bucket replication guide](https://github.com/pgsty/minio/blob/master/docs/bucket/replication/README.md) first.
+This document explains the design approach of server side bucket replication. If you're looking to get started with replication, we suggest you go through the [Bucket replication guide](https://github.com/pgsty/silo/blob/main/docs/bucket/replication/README.md) first.
 
 ## Overview
 
@@ -59,7 +59,7 @@ If 3 or more targets are participating in active-active replication, the replica
 
 ### Internal metadata for replication
 
-`xl.meta` that is in use for [versioning](https://github.com/pgsty/minio/blob/master/docs/bucket/versioning/DESIGN.md) has additional metadata for replication of objects,delete markers and versioned deletes.
+`xl.meta` that is in use for [versioning](https://github.com/pgsty/silo/blob/main/docs/bucket/versioning/DESIGN.md) has additional metadata for replication of objects,delete markers and versioned deletes.
 
 ### Metadata for object replication - on source
 

@@ -3,13 +3,13 @@ name: Go CI
 on:
   pull_request:
     branches:
-      - master
+      - main
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
-# Cancel superseded runs for the same PR; never cancel master push runs.
+# Cancel superseded runs for the same PR; never cancel main push runs.
 # Keyed on PR number (not head_ref) so fork PRs sharing a branch name
 # do not collide.
 concurrency:

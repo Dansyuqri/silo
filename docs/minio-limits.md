@@ -41,7 +41,7 @@ For optimal production setup Silo recommends Linux kernel version 4.x and later.
 
 ## List of Amazon S3 APIs not supported on Silo
 
-We found the following APIs to be redundant or less useful outside of AWS S3. If you have a different view on any of the APIs we missed, please consider opening a [GitHub issue](https://github.com/pgsty/minio/issues) with relevant details on why Silo must implement them.
+We found the following APIs to be redundant or less useful outside of AWS S3. If you have a different view on any of the APIs we missed, please consider opening a [GitHub issue](https://github.com/pgsty/silo/issues) with relevant details on why Silo must implement them.
 
 ### List of Amazon S3 Bucket APIs not supported on Silo
 

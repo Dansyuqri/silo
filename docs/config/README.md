@@ -2,7 +2,7 @@
 
 ## Configuration Directory
 
-Silo stores all its config as part of the server deployment, config is erasure coded on Silo. On a fresh deployment Silo automatically generates a new `config` and this config is available to be configured via `mc admin config` command. Silo also encrypts all the config, IAM and policies content if KMS is configured. Please refer to how to encrypt your config and IAM credentials [here](https://github.com/pgsty/minio/blob/master/docs/kms/IAM.md).
+Silo stores all its config as part of the server deployment, config is erasure coded on Silo. On a fresh deployment Silo automatically generates a new `config` and this config is available to be configured via `mc admin config` command. Silo also encrypts all the config, IAM and policies content if KMS is configured. Please refer to how to encrypt your config and IAM credentials [here](https://github.com/pgsty/silo/blob/main/docs/kms/IAM.md).
 
 ### Certificate Directory
 
@@ -65,7 +65,7 @@ silo server /data
 
 ### Storage Class
 
-By default, parity for objects with standard storage class is set to `N/2`, and parity for objects with reduced redundancy storage class objects is set to `2`. Read more about storage class support in Silo server [here](https://github.com/pgsty/minio/blob/master/docs/erasure/storage-class/README.md).
+By default, parity for objects with standard storage class is set to `N/2`, and parity for objects with reduced redundancy storage class objects is set to `2`. Read more about storage class support in Silo server [here](https://github.com/pgsty/silo/blob/main/docs/erasure/storage-class/README.md).
 
 ```
 KEY:
@@ -91,7 +91,7 @@ MINIO_STORAGE_CLASS_COMMENT   (sentence)  optionally add a comment to this setti
 
 #### Etcd
 
-Silo supports storing encrypted IAM assets in etcd, if KMS is configured. Please refer to how to encrypt your config and IAM credentials [here](https://github.com/pgsty/minio/blob/master/docs/kms/IAM.md).
+Silo supports storing encrypted IAM assets in etcd, if KMS is configured. Please refer to how to encrypt your config and IAM credentials [here](https://github.com/pgsty/silo/blob/main/docs/kms/IAM.md).
 
 > NOTE: if *path_prefix* is set then Silo will not federate your buckets, namespaced IAM assets are assumed as isolated tenants, only buckets are considered globally unique but performing a lookup with a *bucket* which belongs to a different tenant will fail unlike federated setups where Silo would port-forward and route the request to relevant cluster accordingly. This is a special feature, federated deployments should not need to set *path_prefix*.
 
@@ -125,7 +125,7 @@ MINIO_ETCD_COMMENT          (sentence)  optionally add a comment to this setting
 
 ### API
 
-By default, there is no limitation on the number of concurrent requests that a server/cluster processes at the same time. However, it is possible to impose such limitation using the API subsystem. Read more about throttling limitation in Silo server [here](https://github.com/pgsty/minio/blob/master/docs/throttle/README.md).
+By default, there is no limitation on the number of concurrent requests that a server/cluster processes at the same time. However, it is possible to impose such limitation using the API subsystem. Read more about throttling limitation in Silo server [here](https://github.com/pgsty/silo/blob/main/docs/throttle/README.md).
 
 ```
 KEY:

@@ -18,8 +18,7 @@ expected_payload="/etc/default/silo
 /usr/bin/silo
 /usr/lib/systemd/system/silo.service
 /usr/lib/sysusers.d/silo.conf"
-# Transitional until the irreversible GitHub repository rename.
-repository="${GH_REPO:-pgsty/minio}"
+repository="${GH_REPO:-pgsty/silo}"
 container="${DNFUPDATE_CONTAINER:-dnfupdate}"
 upload=false
 release_tag=""

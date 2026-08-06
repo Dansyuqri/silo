@@ -13,20 +13,20 @@
   <a href="https://silo.pgsty.com/docs/">Documentation</a> ·
   <a href="https://silo.pgsty.com/download/">Download</a> ·
   <a href="https://silo.pgsty.com/blog/">Blog</a> ·
-  <a href="https://github.com/pgsty/minio/releases">Releases</a> ·
+  <a href="https://github.com/pgsty/silo/releases">Releases</a> ·
   <a href="SECURITY.md">Security</a> ·
   <a href="README_ZH.md">中文</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/pgsty/minio/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/minio?include_prereleases&label=release&logo=github"></a>
+  <a href="https://github.com/pgsty/silo/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/silo?include_prereleases&label=release&logo=github"></a>
   <a href="https://hub.docker.com/r/pgsty/silo"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/pgsty/silo?logo=docker"></a>
-  <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/minio?logo=go"></a>
+  <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/silo?logo=go"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPLv3-blue"></a>
 </p>
 
 > [!IMPORTANT]
-> Silo is an independent, community-maintained fork of the open-source MinIO server, published by [Pigsty](https://pigsty.io) from [`pgsty/minio`](https://github.com/pgsty/minio). It is not affiliated with, endorsed by, or sponsored by MinIO, Inc. “MinIO” is used only to identify the upstream project and compatibility lineage.
+> Silo is an independent, community-maintained fork of the open-source MinIO server, published by [Pigsty](https://pigsty.io) from [`pgsty/silo`](https://github.com/pgsty/silo). It is not affiliated with, endorsed by, or sponsored by MinIO, Inc. “MinIO” is used only to identify the upstream project and compatibility lineage.
 
 ## Overview
 
@@ -42,8 +42,8 @@ The official project portal is [silo.pgsty.com](https://silo.pgsty.com/). It bri
 | Installation methods and downloads | [Download & Install](https://silo.pgsty.com/download/) ([中文](https://silo.pgsty.com/zh/download/)) |
 | Operations, administration, development, and reference | [Documentation](https://silo.pgsty.com/docs/) ([中文](https://silo.pgsty.com/zh/docs/)) |
 | Project news, release notes, and security notes | [Blog](https://silo.pgsty.com/blog/), including [releases](https://silo.pgsty.com/blog/release/) and [security](https://silo.pgsty.com/blog/security/) |
-| Versioned binaries, checksums, and source archives | [GitHub Releases](https://github.com/pgsty/minio/releases) |
-| Bug reports and feature discussions | [GitHub Issues](https://github.com/pgsty/minio/issues) |
+| Versioned binaries, checksums, and source archives | [GitHub Releases](https://github.com/pgsty/silo/releases) |
+| Bug reports and feature discussions | [GitHub Issues](https://github.com/pgsty/silo/issues) |
 | License, attribution, and trademark information | [License](https://silo.pgsty.com/about/license/), [Attribution](https://silo.pgsty.com/about/attribution/), and [Trademark](https://silo.pgsty.com/about/trademark/) |
 
 ## Maintenance Policy
@@ -84,9 +84,9 @@ Use [Download & Install](https://silo.pgsty.com/download/) to choose an installa
 
 | Artifact | Location |
 | :-- | :-- |
-| Source | [`github.com/pgsty/minio`](https://github.com/pgsty/minio) |
+| Source | [`github.com/pgsty/silo`](https://github.com/pgsty/silo) |
 | Container image | [`pgsty/silo`](https://hub.docker.com/r/pgsty/silo), multi-arch for `linux/amd64` and `linux/arm64` |
-| Server binaries and checksums | [GitHub Releases](https://github.com/pgsty/minio/releases) for Linux, macOS, and Windows on `amd64` and `arm64` |
+| Server binaries and checksums | [GitHub Releases](https://github.com/pgsty/silo/releases) for Linux, macOS, and Windows on `amd64` and `arm64` |
 | Linux packages | RPM, DEB, and APK artifacts, also distributed through the [Pigsty repository](https://pigsty.io/docs/repo/) |
 | Client | [`pgsty/mc`](https://github.com/pgsty/mc), bundled in the container as `mcli` with an `mc` compatibility alias |
 | Console | [`pgsty/silo-console`](https://github.com/pgsty/silo-console), embedded through the compatibility import path `github.com/minio/console` |
@@ -116,7 +116,7 @@ cosign verify-blob \
 
 # Signed build provenance (online verification against this repository).
 gh attestation verify silo_<version>_linux_amd64.tar.gz \
-  --repo pgsty/minio
+  --repo pgsty/silo
 ```
 
 For packages, use `silo_<version>_packages_checksums.txt` and its adjacent
@@ -127,7 +127,7 @@ multi-architecture container provenance by digest:
 ```bash
 gh attestation verify \
   oci://index.docker.io/pgsty/silo@sha256:<manifest-digest> \
-  --repo pgsty/minio
+  --repo pgsty/silo
 ```
 
 The platform SBOM attestations are attached to the `amd64` and `arm64` image
@@ -136,7 +136,7 @@ digests rather than the multi-architecture manifest. Verify each one explicitly:
 ```bash
 gh attestation verify \
   oci://index.docker.io/pgsty/silo@sha256:<platform-digest> \
-  --repo pgsty/minio \
+  --repo pgsty/silo \
   --predicate-type https://spdx.dev/Document/v2.3
 ```
 
@@ -232,4 +232,4 @@ This project was created in response to changes in the upstream community distri
 
 ## License and Trademark
 
-The server remains licensed under the [GNU Affero General Public License v3.0](LICENSE). See [`CREDITS`](CREDITS) and [`NOTICE`](NOTICE) for upstream authorship and attribution. MinIO is a trademark of MinIO, Inc. Silo is an independent community project and is not affiliated with or endorsed by MinIO, Inc. The source repository retains the transitional `pgsty/minio` name until the coordinated repository cutover.
+The server remains licensed under the [GNU Affero General Public License v3.0](LICENSE). See [`CREDITS`](CREDITS) and [`NOTICE`](NOTICE) for upstream authorship and attribution. MinIO is a trademark of MinIO, Inc. Silo is an independent community project and is not affiliated with or endorsed by MinIO, Inc.

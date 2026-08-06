@@ -209,7 +209,7 @@ Examples:
 
 	ErrUnexpectedError = newErrFn(
 		"Unexpected error",
-		"Please report this Silo error at https://github.com/pgsty/minio/issues",
+		"Please report this Silo error at https://github.com/pgsty/silo/issues",
 		"",
 	)
 

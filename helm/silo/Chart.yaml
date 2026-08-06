@@ -12,7 +12,7 @@ keywords:
 home: https://silo.pgsty.com/
 icon: https://silo.pgsty.com/img/silo.svg
 sources:
-- https://github.com/pgsty/minio
+- https://github.com/pgsty/silo
 maintainers:
 - name: Pigsty
   url: https://pigsty.io

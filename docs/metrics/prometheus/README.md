@@ -171,7 +171,7 @@ Prometheus sets the `Host` header to `domain:port` as part of HTTP operations ag
 
 ### 6. Configure Grafana
 
-After Prometheus is configured, you can use Grafana to visualize Silo metrics. Refer the [document here to setup Grafana with Silo prometheus metrics](https://github.com/pgsty/minio/blob/master/docs/metrics/prometheus/grafana/README.md).
+After Prometheus is configured, you can use Grafana to visualize Silo metrics. Refer the [document here to setup Grafana with Silo prometheus metrics](https://github.com/pgsty/silo/blob/main/docs/metrics/prometheus/grafana/README.md).
 
 ## List of metrics exposed by Silo
 
@@ -189,8 +189,8 @@ curl http://127.0.0.1:9000/minio/v2/metrics/cluster
 
 ### List of metrics reported Cluster and Bucket level
 
-[The list of metrics reported can be here](https://github.com/pgsty/minio/blob/master/docs/metrics/prometheus/list.md)
+[The list of metrics reported can be here](https://github.com/pgsty/silo/blob/main/docs/metrics/prometheus/list.md)
 
 ### Configure Alerts for Prometheus
 
-[The Prometheus AlertManager and alerts can be configured following this](https://github.com/pgsty/minio/blob/master/docs/metrics/prometheus/alerts.md)
+[The Prometheus AlertManager and alerts can be configured following this](https://github.com/pgsty/silo/blob/main/docs/metrics/prometheus/alerts.md)

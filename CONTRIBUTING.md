@@ -14,14 +14,11 @@ before implementation.
 ### Set up a checkout
 
 ```sh
-git clone https://github.com/pgsty/minio
-cd minio
+git clone https://github.com/pgsty/silo
+cd silo
 go build -o silo .
 ./silo --version
 ```
-
-The `pgsty/minio` source-repository name is transitional. Follow repository
-redirects after the coordinated `pgsty/silo` cutover.
 
 ### Keep the lineage remote separate
 

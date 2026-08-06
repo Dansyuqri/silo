@@ -351,7 +351,7 @@ export MINIO_IDENTITY_LDAP_GROUP_SEARCH_FILTER='(&(objectclass=groupOfNames)(mem
 silo server ~/test
 ```
 
-You can make sure it works appropriately using our [example program](https://raw.githubusercontent.com/pgsty/minio/master/docs/sts/ldap.go):
+You can make sure it works appropriately using our [example program](https://raw.githubusercontent.com/pgsty/silo/main/docs/sts/ldap.go):
 
 ```
 $ go run ldap.go -u foouser -p foopassword

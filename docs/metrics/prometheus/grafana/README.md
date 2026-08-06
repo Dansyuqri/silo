@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Prometheus and Silo configured as explained in [document here](https://github.com/pgsty/minio/blob/master/docs/metrics/prometheus/README.md).
+- Prometheus and Silo configured as explained in [document here](https://github.com/pgsty/silo/blob/main/docs/metrics/prometheus/README.md).
 - Grafana installed as explained [here](https://grafana.com/grafana/download).
 
 ## Silo Grafana dashboards

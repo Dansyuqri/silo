@@ -1,6 +1,6 @@
 # Bucket Quota Configuration Quickstart Guide [![Docker Pulls](https://img.shields.io/docker/pulls/pgsty/silo.svg?maxAge=604800)](https://hub.docker.com/r/pgsty/silo/)
 
-![quota](https://raw.githubusercontent.com/pgsty/minio/master/docs/bucket/quota/bucketquota.png)
+![quota](https://raw.githubusercontent.com/pgsty/silo/main/docs/bucket/quota/bucketquota.png)
 
 Buckets can be configured to have `Hard` quota - it disallows writes to the bucket after configured quota limit is reached.
 

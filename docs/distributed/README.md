@@ -8,7 +8,7 @@ Silo in distributed mode can help you setup a highly-available storage system wi
 
 ### Data protection
 
-Distributed Silo provides protection against multiple node/drive failures and [bit rot](https://github.com/pgsty/minio/blob/master/docs/erasure/README.md#what-is-bit-rot-protection) using [erasure code](https://silo.pgsty.com/operations/concepts/erasure-coding/). As the minimum drives required for distributed Silo is 2 (same as minimum drives required for erasure coding), erasure code automatically kicks in as you launch distributed Silo.
+Distributed Silo provides protection against multiple node/drive failures and [bit rot](https://github.com/pgsty/silo/blob/main/docs/erasure/README.md#what-is-bit-rot-protection) using [erasure code](https://silo.pgsty.com/operations/concepts/erasure-coding/). As the minimum drives required for distributed Silo is 2 (same as minimum drives required for erasure coding), erasure code automatically kicks in as you launch distributed Silo.
 
 If one or more drives are offline at the start of a PutObject or NewMultipartUpload operation the object will have additional data protection bits added automatically to provide additional safety for these objects.
 
@@ -18,7 +18,7 @@ A stand-alone Silo server would go down if the server hosting the drives goes of
 
 For example, an 16-server distributed setup with 200 drives per node would continue serving files, up to 4 servers can be offline in default configuration i.e around 800 drives down Silo would continue to read and write objects.
 
-Refer to sizing guide for more understanding on default values chosen depending on your erasure stripe size [here](https://github.com/pgsty/minio/blob/master/docs/distributed/SIZING.md). Parity settings can be changed using [storage classes](https://github.com/pgsty/minio/tree/master/docs/erasure/storage-class).
+Refer to sizing guide for more understanding on default values chosen depending on your erasure stripe size [here](https://github.com/pgsty/silo/blob/main/docs/distributed/SIZING.md). Parity settings can be changed using [storage classes](https://github.com/pgsty/silo/tree/main/docs/erasure/storage-class).
 
 ### Consistency Guarantees
 

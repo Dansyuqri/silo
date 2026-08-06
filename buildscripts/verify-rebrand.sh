@@ -135,6 +135,34 @@ if rg -n 'pgsty/minio:' .github/workflows Dockerfile.goreleaser helm/silo; then
 	fail "an active delivery surface still publishes the frozen pgsty/minio image"
 fi
 
+# The repository and its default branch are pgsty/silo and main. Only three
+# places may still name the old repository, and each one exists to reject or
+# freeze it rather than to point users at it: the pinned pre-rebrand image
+# digest in the upgrade test, and the two guards that refuse a legacy image.
+repo_guard_allowlist='^(buildscripts/minio-upgrade\.sh|buildscripts/verify-rebrand\.sh|buildscripts/helm-migration-guard/main\.go):'
+stale_repo="$(rg -n 'pgsty/minio' --glob '!.git/**' --glob '!dist/**' \
+	--glob '!SILO_REBRANDING_MIGRATION.md' \
+	--glob '!buildscripts/rebrand-guard/compat-baseline.json' . |
+	sed 's#^\./##' | grep -Ev "${repo_guard_allowlist}" || true)"
+if [ -n "${stale_repo}" ]; then
+	printf '%s\n' "${stale_repo}" >&2
+	fail "a source reference still names the pre-rename pgsty/minio repository"
+fi
+
+stale_branch="$(rg -n 'pgsty/silo/(blob/|tree/|raw/)?master' \
+	--glob '!.git/**' --glob '!dist/**' . || true)"
+if [ -n "${stale_branch}" ]; then
+	printf '%s\n' "${stale_branch}" >&2
+	fail "a link still targets the retired master branch; raw and Actions URLs do not follow a branch rename"
+fi
+
+for workflow in .github/workflows/go.yml .github/workflows/vulncheck.yml; do
+	if rg -q '^\s+- master$' "${workflow}"; then
+		fail "${workflow} still filters on master and would go silently dormant on main"
+	fi
+	require_text "${workflow}" "      - main"
+done
+
 network_hits="$(rg -n --glob '*.go' --glob '!**/*_test.go' \
 	'https?://[^"`[:space:]]*(dl\.min\.io|subnet\.min\.io|api\.min\.io|slack\.min\.io|play\.min\.io)' \
 	cmd internal || true)"

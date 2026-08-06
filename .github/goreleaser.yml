@@ -66,8 +66,7 @@ signs:
 release:
   github:
     owner: pgsty
-    # Transitional until the irreversible GitHub repository rename.
-    name: minio
+    name: silo
   draft: true
   prerelease: false
   mode: append

@@ -148,7 +148,7 @@ func apiErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
 	return e.Code
 }
 
-// TestAPICompleteMultipartFullObjectChecksum covers pgsty/minio#31.
+// TestAPICompleteMultipartFullObjectChecksum covers pgsty/silo#31.
 //
 // A multipart upload created with a full object checksum type must be
 // completable by sending only PartNumber and ETag per part, plus the object

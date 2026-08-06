@@ -10,7 +10,7 @@ replace github.com/minio/console => github.com/pgsty/silo-console v0.0.0-2026080
 replace github.com/minio/mc => github.com/pgsty/mc v0.0.0-20260801042411-ad10a2a10b76
 
 // Use Pigsty's maintained SILO package fork while preserving upstream import paths.
-// This retains the LDAP TLS fix tracked in https://github.com/pgsty/minio/issues/15.
+// This retains the LDAP TLS fix tracked in https://github.com/pgsty/silo/issues/15.
 // v3.11.0 follows upstream minio/pkg's 3.11 line and carries the
 // minio/minio#20449 bucket-write boundary hardening.
 replace github.com/minio/pkg/v3 => github.com/pgsty/silo-pkg/v3 v3.11.0

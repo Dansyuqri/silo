@@ -3,7 +3,7 @@
 See the [Silo documentation](https://silo.pgsty.com/docs/) for production
 deployment and operations guidance.
 
-For images built from this `pgsty/minio` fork, the container also bundles `mcli` and a compatibility `mc` symlink from `pgsty/mc`.
+For images built from this `pgsty/silo` fork, the container also bundles `mcli` and a compatibility `mc` symlink from `pgsty/mc`.
 
 ## Prerequisites
 
