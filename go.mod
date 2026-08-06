@@ -2,9 +2,9 @@ module github.com/minio/minio
 
 go 1.26.5
 
-// Use Pigsty's SILO Console v2.1.0 release while preserving upstream import paths.
-// The pseudo-version pins v2.1.0's commit because the compatible module path has no /v2 suffix.
-replace github.com/minio/console => github.com/pgsty/silo-console v0.0.0-20260806013504-343d94426251
+// Use Pigsty's SILO Console v2.1.1 release while preserving upstream import paths.
+// The pseudo-version pins v2.1.1's commit because the compatible module path has no /v2 suffix.
+replace github.com/minio/console => github.com/pgsty/silo-console v0.0.0-20260806061103-72fc0a5ea52a
 
 // Use Pigsty's maintained mc fork for Console's embedded client code.
 replace github.com/minio/mc => github.com/pgsty/mc v0.0.0-20260801042411-ad10a2a10b76
