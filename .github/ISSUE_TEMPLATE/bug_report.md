@@ -24,7 +24,7 @@ assignees: ''
 ## Steps to Reproduce (for bugs)
 <!--- Provide a link to a live example, or an unambiguous set of steps to -->
 <!--- reproduce this bug. Include code to reproduce, if relevant -->
-<!--- and make sure you have followed https://github.com/minio/minio/tree/release/docs/debugging to capture relevant logs -->
+<!--- and include the relevant Silo logs with secrets and credentials removed -->
 
 1.
 2.
@@ -37,10 +37,10 @@ assignees: ''
 
 ## Regression
 <!-- Is this issue a regression? (Yes / No) -->
-<!-- If Yes, optionally please include minio version or commit id or PR# that caused this regression, if you have these details. -->
+<!-- If Yes, optionally include the Silo version, commit id, or PR that caused the regression. -->
 
 ## Your Environment
 <!--- Include as many relevant details about the environment you experienced the bug in -->
-* Version used (`minio --version`):
+* Version used (`silo --version`):
 * Server setup and configuration:
 * Operating System and version (`uname -a`):

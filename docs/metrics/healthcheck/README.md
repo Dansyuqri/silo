@@ -1,6 +1,6 @@
-# MinIO Healthcheck
+# Silo Healthcheck
 
-MinIO server exposes three un-authenticated, healthcheck endpoints liveness probe and a cluster probe at `/minio/health/live` and `/minio/health/cluster` respectively.
+Silo server exposes three un-authenticated, healthcheck endpoints liveness probe and a cluster probe at `/minio/health/live` and `/minio/health/cluster` respectively.
 
 ## Liveness probe
 
@@ -43,11 +43,11 @@ readinessProbe:
 The reply is '200 OK' if cluster has write quorum if not it returns '503 Service Unavailable'.
 
 ```
-curl http://minio1:9001/minio/health/cluster
+curl http://silo1:9001/minio/health/cluster
 HTTP/1.1 503 Service Unavailable
 Accept-Ranges: bytes
 Content-Length: 0
-Server: MinIO
+Server: Silo
 Vary: Origin
 X-Amz-Bucket-Region: us-east-1
 X-Minio-Write-Quorum: 3
@@ -61,11 +61,11 @@ Date: Tue, 21 Jul 2020 00:36:14 GMT
 The reply is '200 OK' if cluster has read quorum if not it returns '503 Service Unavailable'.
 
 ```
-curl http://minio1:9001/minio/health/cluster/read
+curl http://silo1:9001/minio/health/cluster/read
 HTTP/1.1 503 Service Unavailable
 Accept-Ranges: bytes
 Content-Length: 0
-Server: MinIO
+Server: Silo
 Vary: Origin
 X-Amz-Bucket-Region: us-east-1
 X-Minio-Write-Quorum: 3
@@ -79,11 +79,11 @@ Date: Tue, 21 Jul 2020 00:36:14 GMT
 You may query the cluster probe endpoint to check if the node which received the request can be taken down for maintenance, if the server replies back '412 Precondition Failed' this means you will lose HA. '200 OK' means you are okay to proceed.
 
 ```
-curl http://minio1:9001/minio/health/cluster?maintenance=true
+curl http://silo1:9001/minio/health/cluster?maintenance=true
 HTTP/1.1 412 Precondition Failed
 Accept-Ranges: bytes
 Content-Length: 0
-Server: MinIO
+Server: Silo
 Vary: Origin
 X-Amz-Bucket-Region: us-east-1
 X-Amz-Request-Id: 16239D63820C6E76

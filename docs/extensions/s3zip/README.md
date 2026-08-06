@@ -1,8 +1,8 @@
-# Perform S3 operations in a ZIP content[![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/minio.svg?maxAge=604800)](https://hub.docker.com/r/minio/minio/)
+# Perform S3 operations in a ZIP content [![Docker Pulls](https://img.shields.io/docker/pulls/pgsty/silo.svg?maxAge=604800)](https://hub.docker.com/r/pgsty/silo/)
 
 ## Overview
 
-MinIO implements an S3 extension to list, stat and download files inside a ZIP file stored in any bucket. A perfect use case scenario is when you have a lot of small files archived in multiple ZIP files. Uploading them is faster than uploading small files individually. Besides, your S3 applications will be able to access to the data with little performance overhead.
+Silo implements an S3 extension to list, stat and download files inside a ZIP file stored in any bucket. A perfect use case scenario is when you have a lot of small files archived in multiple ZIP files. Uploading them is faster than uploading small files individually. Besides, your S3 applications will be able to access to the data with little performance overhead.
 
 The main limitation is that to update or delete content of a file inside a ZIP file the entire ZIP file must be replaced.
 

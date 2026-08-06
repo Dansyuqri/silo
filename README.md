@@ -4,7 +4,7 @@
 
 
 <p align="center">
-  <strong>A conservatively maintained MinIO fork</strong><br>
+  <strong>Conservatively maintained S3-compatible object storage</strong><br>
   Security maintenance, versioned release artifacts, and operational continuity for existing deployments.
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://github.com/pgsty/minio/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/pgsty/minio?include_prereleases&label=release&logo=github"></a>
-  <a href="https://hub.docker.com/r/pgsty/minio"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/pgsty/minio?logo=docker"></a>
+  <a href="https://hub.docker.com/r/pgsty/silo"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/pgsty/silo?logo=docker"></a>
   <a href="go.mod"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/pgsty/minio?logo=go"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPLv3-blue"></a>
 </p>
@@ -30,7 +30,7 @@
 
 ## Overview
 
-Silo maintains one downstream release line based on MinIO [`RELEASE.2025-12-03T12-00-00Z`](https://github.com/minio/minio/releases/tag/RELEASE.2025-12-03T12-00-00Z). It provides maintained builds and release artifacts for existing MinIO-compatible deployments after upstream community distribution ended. Pigsty uses this fork for object storage as an optional PG backup repo.
+Silo maintains one downstream release line derived from the open-source MinIO server. It provides maintained builds and release artifacts for existing MinIO-compatible deployments after upstream community distribution ended. Pigsty uses Silo for object storage, including as an optional PostgreSQL backup repository.
 
 The official project portal is [silo.pgsty.com](https://silo.pgsty.com/). It brings documentation, downloads, release and security notes, and project background together. English is served at the site root; Chinese is available under [/zh/](https://silo.pgsty.com/zh/).
 
@@ -70,8 +70,11 @@ Changes are kept narrow and tested where practical. Maintenance is best effort; 
 
 Silo aims to preserve:
 
-- MinIO-compatible S3 APIs, configuration, environment variables, and CLI conventions;
-- `RELEASE.YYYY-MM-DDTHH-MM-SSZ` tags, container entrypoints, and common deployment workflows.
+- the `github.com/minio/minio` module path and `github.com/minio/*` import paths;
+- MinIO-compatible S3 APIs, wire behavior, `MINIO_*` environment variables, metrics, protocol headers, reserved routes, and storage metadata;
+- `RELEASE.YYYY-MM-DDTHH-MM-SSZ` tags and legacy `minio …` container argv translation.
+
+Silo-owned delivery surfaces use the `silo` executable, package, service, Helm chart, and `pgsty/silo` container image. Native artifacts intentionally do not install a `minio` binary alias.
 
 Compatibility is the default constraint. Silo preserves existing wire, client, configuration, and operational behavior whenever doing so remains safe. Compatibility is broken only when necessary to close a major security issue, and the release notes must identify the affected behavior and migration path. Treat each release as a downstream upgrade: pin versions, review [release notes](https://silo.pgsty.com/blog/release/) and [security advisories](docs/security/advisories.md), keep a rollback path, and test before production use.
 
@@ -82,12 +85,88 @@ Use [Download & Install](https://silo.pgsty.com/download/) to choose an installa
 | Artifact | Location |
 | :-- | :-- |
 | Source | [`github.com/pgsty/minio`](https://github.com/pgsty/minio) |
-| Container image | [`pgsty/minio`](https://hub.docker.com/r/pgsty/minio), multi-arch for `linux/amd64` and `linux/arm64` |
+| Container image | [`pgsty/silo`](https://hub.docker.com/r/pgsty/silo), multi-arch for `linux/amd64` and `linux/arm64` |
 | Server binaries and checksums | [GitHub Releases](https://github.com/pgsty/minio/releases) for Linux, macOS, and Windows on `amd64` and `arm64` |
 | Linux packages | RPM, DEB, and APK artifacts, also distributed through the [Pigsty repository](https://pigsty.io/docs/repo/) |
 | Client | [`pgsty/mc`](https://github.com/pgsty/mc), bundled in the container as `mcli` with an `mc` compatibility alias |
-| Console | Maintained [`georgmangold/console`](https://github.com/georgmangold/console) fork, embedded in the server build |
-| Shared library | [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) v3.7.0, consumed through a `replace` directive while preserving `github.com/minio/pkg/v3` import paths ([release notes](https://silo.pgsty.com/blog/release/pkg-3.7.0/)) |
+| Console | [`pgsty/silo-console`](https://github.com/pgsty/silo-console), embedded through the compatibility import path `github.com/minio/console` |
+| Shared library | [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) v3.11.0, consumed through a `replace` directive while preserving the `github.com/minio/pkg/v3` import path |
+
+Each new release publishes per-archive and per-package SPDX JSON SBOMs. The archive and package checksum manifests have detached keyless Sigstore bundles, while GitHub artifact attestations record signed provenance for every downloadable artifact and the multi-architecture container image.
+
+After downloading an archive and its release files, verify integrity, the
+published SBOM, the signed manifest, and build provenance independently:
+
+```bash
+# Integrity: choose the line for the artifact you downloaded.
+grep -F '  silo_<version>_linux_amd64.tar.gz' \
+  silo_<version>_checksums.txt | sha256sum --check
+
+# The archive SBOM is a separate checksummed release artifact.
+grep -F '  silo_<version>_linux_amd64.tar.gz.sbom.json' \
+  silo_<version>_checksums.txt | sha256sum --check
+
+# Signature over the archive/SBOM checksum manifest.
+cosign verify-blob \
+  --bundle silo_<version>_checksums.txt.sigstore.json \
+  --certificate-identity-regexp \
+    '^https://github.com/pgsty/(minio|silo)/\.github/workflows/release\.yml@refs/(tags/RELEASE\..+|heads/(master|main))$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  silo_<version>_checksums.txt
+
+# Signed build provenance (online verification against this repository).
+gh attestation verify silo_<version>_linux_amd64.tar.gz \
+  --repo pgsty/minio
+```
+
+For packages, use `silo_<version>_packages_checksums.txt` and its adjacent
+Sigstore bundle with the same identity and issuer constraints. Inspect the
+verified SPDX JSON SBOM with your preferred SPDX tooling. Verify the
+multi-architecture container provenance by digest:
+
+```bash
+gh attestation verify \
+  oci://index.docker.io/pgsty/silo@sha256:<manifest-digest> \
+  --repo pgsty/minio
+```
+
+The platform SBOM attestations are attached to the `amd64` and `arm64` image
+digests rather than the multi-architecture manifest. Verify each one explicitly:
+
+```bash
+gh attestation verify \
+  oci://index.docker.io/pgsty/silo@sha256:<platform-digest> \
+  --repo pgsty/minio \
+  --predicate-type https://spdx.dev/Document/v2.3
+```
+
+Verification by digest avoids trusting a mutable image tag.
+
+### Native package migration
+
+The `silo` RPM, DEB, and APK do not declare `Provides`, `Obsoletes`,
+`Replaces`, or package-level `Conflicts` against `minio`. They can therefore be
+installed beside an existing MinIO package without silently replacing it. The
+two systemd units conflict at runtime, so switch them explicitly rather than
+starting both.
+
+Before switching, record the old unit's enabled/active state and `User`/`Group`,
+and back up `/etc/default/minio`. Silo reads that legacy defaults file first and
+then `/etc/default/silo`; administrator-set values in the latter take
+precedence. If the existing data must continue to run under its original
+UID/GID, create `/etc/systemd/system/silo.service.d/10-legacy-user.conf`:
+
+```ini
+[Service]
+User=<legacy-user>
+Group=<legacy-group>
+```
+
+Run `systemctl daemon-reload`, then disable and stop `minio.service` before
+enabling and starting `silo.service`. Verify health, S3, Admin API, metrics, and
+logs before masking or uninstalling the old service. Do not recursively change
+data ownership as part of the package migration; keep the old package and unit
+available during the rollback window.
 
 ## Quick Start
 
@@ -105,7 +184,7 @@ docker run -d --name silo \
   -e MINIO_ROOT_USER \
   -e MINIO_ROOT_PASSWORD \
   -v "$PWD/data:/data" \
-  pgsty/minio:latest server /data --console-address ":9001"
+  docker.io/pgsty/silo:latest server /data --console-address ":9001"
 ```
 
 Open the console at <http://localhost:9001>; the S3 API listens on <http://localhost:9000>.
@@ -125,15 +204,15 @@ docker exec silo mcli ls local
 Build the server from source:
 
 ```bash
-go build -o minio .
-./minio --version
+go build -o silo .
+./silo --version
 ```
 
 For other installation paths—including native packages, binaries, Podman, Kubernetes, source, and Pigsty Ansible—use [Download & Install](https://silo.pgsty.com/download/). For production deployment and administration, start with the [Silo documentation](https://silo.pgsty.com/docs/). Pigsty users can also use the [Pigsty MinIO module](https://pigsty.io/docs/minio/).
 
 ## Security
 
-Security fixes target the active `master` branch and are recorded in the [advisory log](docs/security/advisories.md) and the portal's [security notes](https://silo.pgsty.com/blog/security/). Report vulnerabilities privately as described in [`SECURITY.md`](SECURITY.md) and [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md). Report issues that also affect upstream MinIO there as well.
+Security fixes target the active development branch and are recorded in the [advisory log](docs/security/advisories.md) and the portal's [security notes](https://silo.pgsty.com/blog/security/). Report vulnerabilities privately as described in [`SECURITY.md`](SECURITY.md) and [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md). Report issues that also affect upstream MinIO there as well.
 
 ## Contributing
 
@@ -153,4 +232,4 @@ This project was created in response to changes in the upstream community distri
 
 ## License and Trademark
 
-The server remains licensed under the [GNU Affero General Public License v3.0](LICENSE). See [`CREDITS`](CREDITS) for upstream authorship and attribution. MinIO is a trademark of MinIO, Inc. Silo and `pgsty/minio` are independent community efforts and are not affiliated with or endorsed by MinIO, Inc.
+The server remains licensed under the [GNU Affero General Public License v3.0](LICENSE). See [`CREDITS`](CREDITS) and [`NOTICE`](NOTICE) for upstream authorship and attribution. MinIO is a trademark of MinIO, Inc. Silo is an independent community project and is not affiliated with or endorsed by MinIO, Inc. The source repository retains the transitional `pgsty/minio` name until the coordinated repository cutover.

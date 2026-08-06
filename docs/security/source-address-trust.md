@@ -1,6 +1,6 @@
 # Client source address trust
 
-MinIO decides where a request came from, and that decision is load-bearing. The
+Silo decides where a request came from, and that decision is load-bearing. The
 address it settles on becomes:
 
 - `aws:SourceIp`, so it decides `IpAddress` and `NotIpAddress` policy conditions
@@ -11,7 +11,7 @@ address it settles on becomes:
 
 None of that is derived from the TCP connection by default. It is read out of the
 `X-Forwarded-For`, `X-Real-IP` and RFC 7239 `Forwarded` request headers, which
-any client can set to any value. This document states which peers MinIO believes,
+any client can set to any value. This document states which peers Silo believes,
 how to change that, and what each choice costs.
 
 ## The three modes
@@ -66,7 +66,7 @@ that overwrites all three headers. Two things commonly break that assumption:
 - **Appending proxies.** The stock nginx recipe
   `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` *appends* to
   what the client sent. A client sending `X-Forwarded-For: 1.2.3.4` produces
-  `1.2.3.4, <real client>` at MinIO, and this mode reads the left-most entry —
+  `1.2.3.4, <real client>` at Silo, and this mode reads the left-most entry —
   the client's. Overwriting with `$remote_addr` avoids this; so does the
   allow-listed mode below, which reads the chain from the other end.
 
@@ -78,11 +78,11 @@ MINIO_API_TRUSTED_PROXIES=none
 
 No forwarded header is believed. The source address is the TCP peer, always.
 
-Use this when MinIO is reached directly and you would rather have a correct
+Use this when Silo is reached directly and you would rather have a correct
 address that is sometimes a proxy than a plausible one that is sometimes a lie.
 Behind a proxy, every request will be attributed to the proxy.
 
-**On a multi-node deployment this also applies to MinIO's own nodes.** Some
+**On a multi-node deployment this also applies to Silo's own nodes.** Some
 requests are forwarded between nodes (see [Multi-node](#multi-node-deployments)),
 and the receiving node's peer is the forwarding node, so those requests are
 attributed to it rather than to the client. Nothing corrects this under this
@@ -147,7 +147,7 @@ the list.** It is trusted verbatim, and only when the chain headers yield
 nothing. The deployment contract is that a listed proxy overwrites whichever
 headers it sets — for nginx, `proxy_set_header X-Real-IP $remote_addr;`. A proxy
 that relays the client's copy instead is choosing to let the client answer the
-question, and nothing MinIO does can undo that.
+question, and nothing Silo does can undo that.
 
 > **Strip at the edge every source-address header your proxy does not itself
 > write.** This is the one rule that covers every case, and it is worth following
@@ -180,7 +180,7 @@ not skipped — only peers are exempt, not chain entries.
 
 ## Multi-node deployments
 
-**A cluster must list its own nodes.** MinIO forwards some requests between
+**A cluster must list its own nodes.** Silo forwards some requests between
 nodes — bucket-DNS and site-replication routing, listing continuation,
 heal-by-token, batch jobs and pool decommissioning. The receiving node's peer is
 the forwarding node, so unless the cluster's own addresses are on the list, those
@@ -202,7 +202,7 @@ appends, or you are in the second case below. Otherwise:
 - Direct exposure, no proxy: `MINIO_API_TRUSTED_PROXIES=none`.
 - Behind a proxy, but the port is also reachable directly (the usual Kubernetes
   Ingress-plus-Service case, and the usual Pigsty case): set
-  `MINIO_API_TRUSTED_PROXIES` to the proxy addresses plus the MinIO node
+  `MINIO_API_TRUSTED_PROXIES` to the proxy addresses plus the Silo node
   addresses. This is the configuration that makes an `IpAddress` condition mean
   something.
 - Multi-node clusters: use the allow-list with node addresses included, not

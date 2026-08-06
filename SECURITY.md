@@ -1,18 +1,25 @@
 # Security Policy
 
-This repository is the `pgsty/minio` community fork of `minio/minio`. Upstream MinIO security contacts do not handle fork-specific fixes or release notes for this repository.
+Silo is an independent, community-maintained object-storage server derived from
+the open-source MinIO server. The source repository retains the transitional
+name `pgsty/minio` until the coordinated repository cutover. Upstream MinIO
+security contacts do not handle Silo-specific fixes or release notes.
 
 ## Supported Versions
 
-Security fixes are tracked on the active `master` branch and summarized in [docs/security/advisories.md](docs/security/advisories.md).
+Security fixes are tracked on the active development branch and summarized in
+[docs/security/advisories.md](docs/security/advisories.md). Only the current
+Silo release line is supported unless an advisory says otherwise.
 
 ## Reporting a Vulnerability
 
 For vulnerabilities in this fork:
 
 1. Follow the fork-specific expectations in [VULNERABILITY_REPORT.md](VULNERABILITY_REPORT.md).
-2. Prefer the `pgsty/minio` repository's GitHub security reporting workflow when it is available.
-3. If private reporting is not available, contact the maintainers through the `pgsty/minio` repository before publishing detailed exploit information.
+2. Prefer this repository's [private GitHub security advisory](https://github.com/pgsty/minio/security/advisories/new) workflow.
+3. If private reporting is unavailable, contact the maintainers through the
+   repository without publishing exploit details until a private channel is
+   established.
 4. If you confirm the issue also affects upstream `minio/minio`, report it upstream separately.
 
 ## Disclosure Process

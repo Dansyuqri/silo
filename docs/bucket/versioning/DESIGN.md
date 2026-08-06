@@ -1,8 +1,8 @@
-# Bucket Versioning Design Guide [![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/minio.svg?maxAge=604800)](https://hub.docker.com/r/minio/minio/)
+# Bucket Versioning Design Guide [![Docker Pulls](https://img.shields.io/docker/pulls/pgsty/silo.svg?maxAge=604800)](https://hub.docker.com/r/pgsty/silo/)
 
 ## Description of `xl.meta`
 
-`xl.meta` is a new self describing backend format used by MinIO to support AWS S3 compatible versioning.
+`xl.meta` is a new self describing backend format used by Silo to support AWS S3 compatible versioning.
 This file is the source of truth for each `version` at rest. `xl.meta` is a msgpack file serialized from a
 well defined data structure. To understand `xl.meta` here are the few things to start with
 
