@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # Build the code at the tag being released, not whatever branch the
@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -107,7 +107,7 @@ jobs:
           cosign-release: v3.1.2
 
       - name: Build Draft release with GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --clean --skip=validate --config .github/goreleaser.yml
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload dist artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
