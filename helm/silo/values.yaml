@@ -1,4 +1,5 @@
-## Provide a name in place of minio for `app:` labels
+## Override the Silo name used for resource names and `app:` labels. Existing
+## releases can set this to `minio` to retain their current resource identity.
 ##
 nameOverride: ""
 
@@ -6,29 +7,29 @@ nameOverride: ""
 ##
 fullnameOverride: ""
 
-## set kubernetes cluster domain where minio is running
+## Set the Kubernetes cluster domain where Silo is running.
 ##
 clusterDomain: cluster.local
 
 ## Set default image, imageTag, and imagePullPolicy. mode is used to indicate the
 ##
 image:
-  repository: pgsty/minio
+  repository: pgsty/silo
   tag: RELEASE.2026-08-04T00-00-00Z
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 # - name: "image-pull-secret"
 
-## Image used by post-install jobs. The pgsty/minio image bundles mcli and
+## Image used by post-install jobs. The pgsty/silo image bundles mcli and
 ## provides /usr/bin/mc as a compatibility link.
 ##
 mcImage:
-  repository: pgsty/minio
+  repository: pgsty/silo
   tag: RELEASE.2026-08-04T00-00-00Z
   pullPolicy: IfNotPresent
 
-## minio mode, i.e. standalone or distributed
+## Silo mode, i.e. standalone or distributed.
 mode: distributed ## other supported values are "standalone"
 
 ## Additional labels to include with deployment or statefulset
@@ -43,26 +44,26 @@ additionalAnnotations: {}
 ## flux, so set to "true" to disable this behaviour.
 ignoreChartChecksums: false
 
-## Additional arguments to pass to minio binary
+## Additional arguments to pass to the Silo binary.
 extraArgs: []
 # example for enabling FTP:
 #   - --ftp=\"address=:8021\"
 #   - --ftp=\"passive-port-range=10000-10010\"
 
-## Additional volumes to minio container
+## Additional volumes for the Silo container.
 extraVolumes: []
 
-## Additional volumeMounts to minio container
+## Additional volume mounts for the Silo container.
 extraVolumeMounts: []
 
 ## Additional sidecar containers
 extraContainers: []
 
-## Internal port number for MinIO S3 API container
+## Internal port number for the Silo S3 API container.
 ## Change service.port to change external port number
 minioAPIPort: "9000"
 
-## Internal port number for MinIO Browser Console container
+## Internal port number for the Silo Console container.
 ## Change consoleService.port to change external port number
 minioConsolePort: "9001"
 
@@ -88,7 +89,7 @@ runtimeClassName: ""
 
 ## Set default rootUser, rootPassword
 ## rootUser and rootPassword is generated when not set
-## Distributed MinIO ref: https://silo.pgsty.com/operations/deployments/baremetal/
+## Distributed Silo reference: https://silo.pgsty.com/operations/deployments/baremetal/
 ##
 rootUser: ""
 rootPassword: ""
@@ -105,13 +106,13 @@ rootPassword: ""
 ## others depend on enabled status of corresponding sections.
 existingSecret: ""
 
-## Directory on the MinIO pof
-certsPath: "/etc/minio/certs/"
-configPathmc: "/etc/minio/mc/"
+## Certificate and mcli configuration paths inside the Silo pod.
+certsPath: "/etc/silo/certs/"
+configPathmc: "/etc/silo/mc/"
 
-## Path where PV would be mounted on the MinIO Pod
+## Path where the PV is mounted on the Silo pod.
 mountPath: "/export"
-## Override the root directory which the minio server should serve from.
+## Override the root directory which the Silo server should serve from.
 ## If left empty, it defaults to the value of {{ .Values.mountPath }}
 ## If defined, it must be a sub-directory of the path specified in {{ .Values.mountPath }}
 ##
@@ -119,22 +120,22 @@ bucketRoot: ""
 
 # Number of drives attached to a node
 drivesPerNode: 1
-# Number of MinIO containers running
+# Number of Silo containers running
 replicas: 16
-# Number of expanded MinIO clusters
+# Number of expanded Silo clusters
 pools: 1
 
-## TLS Settings for MinIO
+## TLS settings for Silo.
 tls:
   enabled: false
-  ## Create a secret with private.key and public.crt files and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
+  ## Create a Secret with private.key and public.crt and pass its name here.
   certSecret: ""
   publicCrt: public.crt
   privateKey: private.key
 
-## Trusted Certificates Settings for MinIO. Ref: https://silo.pgsty.com/operations/network-encryption/#third-party-certificate-authorities
-## Bundle multiple trusted certificates into one secret and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
-## When using self-signed certificates, remember to include MinIO's own certificate in the bundle with key public.crt.
+## Trusted certificate settings for Silo. Ref: https://silo.pgsty.com/operations/network-encryption/#third-party-certificate-authorities
+## Bundle multiple trusted certificates into one Secret and pass that here.
+## With self-signed certificates, include Silo's own certificate under public.crt.
 ## If certSecret is left empty and tls is enabled, this chart installs the public certificate from .Values.tls.certSecret.
 trustedCertsSecret: ""
 
@@ -150,7 +151,7 @@ persistence:
   ## If defined, PVC must be created manually before volume will be bound
   existingClaim: ""
 
-  ## minio data Persistent Volume Storage Class
+  ## Silo data PersistentVolume storage class.
   ## If defined, storageClassName: <storageClass>
   ## If set to "-", storageClassName: "", which disables dynamic provisioning
   ## If undefined (the default) or set to null, no storageClassName spec is
@@ -169,7 +170,7 @@ persistence:
   ##
   subPath: ""
 
-## Expose the MinIO service to be accessed from outside the cluster (LoadBalancer service).
+## Expose Silo outside the cluster with a LoadBalancer Service.
 ## or access it from within the cluster (ClusterIP service). Set the service type and the port to serve it.
 ## ref: http://kubernetes.io/docs/user-guide/services/
 ##
@@ -189,7 +190,7 @@ service:
   #   - 10.10.10.0/24
   loadBalancerSourceRanges: []
 
-  ## service.externalTrafficPolicy minio service external traffic policy
+  ## service.externalTrafficPolicy controls Silo Service traffic handling.
   ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
   ##
   externalTrafficPolicy: Cluster
@@ -214,7 +215,7 @@ ingress:
     # nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
   path: /
   hosts:
-    - minio-example.local
+    - silo-example.local
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -235,7 +236,7 @@ consoleService:
   #   - 10.10.10.0/24
   loadBalancerSourceRanges: []
 
-  ## servconsoleServiceice.externalTrafficPolicy minio service external traffic policy
+  ## consoleService.externalTrafficPolicy controls Console traffic handling.
   ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
   ##
   externalTrafficPolicy: Cluster
@@ -257,7 +258,7 @@ consoleIngress:
     # nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
   path: /
   hosts:
-    - console.minio-example.local
+    - console.silo-example.local
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -271,7 +272,7 @@ tolerations: []
 affinity: {}
 topologySpreadConstraints: []
 
-## Add stateful containers to have security context, if enabled MinIO will run as this
+## Configure the security context used by stateful Silo containers.
 ## user and group NOTE: securityContext is only enabled if persistence.enabled=true
 securityContext:
   enabled: true
@@ -296,7 +297,7 @@ resources:
   requests:
     memory: 16Gi
 
-## List of policies to be created after minio install
+## Policies to create after installing Silo.
 ##
 ## In addition to default policies [readonly|readwrite|writeonly|consoleAdmin|diagnostics]
 ## you can define additional policies with custom supported actions and resources
@@ -364,11 +365,11 @@ makePolicyJob:
   # Command to run after the main command on exit
   exitCommand: ""
 
-## List of users to be created after minio install
+## Users to create after installing Silo.
 ## Username, password and policy to be assigned to the user.
 ## Default policies are [readonly|readwrite|writeonly|consoleAdmin|diagnostics].
 ## Add new policies as explained here https://silo.pgsty.com/administration/identity-access-management/#access-management
-## NOTE: this will fail if LDAP is enabled in your MinIO deployment.
+## NOTE: this will fail if LDAP is enabled in the Silo deployment.
 ##
 ## Example:
 ## users:
@@ -394,7 +395,7 @@ makeUserJob:
   # Command to run after the main command on exit
   exitCommand: ""
 
-## List of service accounts to be created after minio install
+## Service accounts to create after installing Silo.
 ##
 svcaccts:
   []
@@ -434,7 +435,7 @@ makeServiceAccountJob:
   # Command to run after the main command on exit
   exitCommand: ""
 
-## List of buckets to be created after minio install
+## Buckets to create after installing Silo.
 ##
 buckets:
   []
@@ -471,10 +472,11 @@ makeBucketJob:
   # Command to run after the main command on exit
   exitCommand: ""
 
-## List of command to run after minio install
-## NOTE: the mc command TARGET is always "myminio"
+## Commands to run after installing Silo.
+## The preferred mc command TARGET is "mysilo". The legacy "myminio" target
+## remains registered so existing customCommands values continue to work.
 customCommands:
-  # - command: "admin policy attach myminio consoleAdmin --group='cn=ops,cn=groups,dc=example,dc=com'"
+  # - command: "admin policy attach mysilo consoleAdmin --group='cn=ops,cn=groups,dc=example,dc=com'"
 
 ## Additional Annotations for the Kubernetes Job customCommandJob
 customCommandJob:
@@ -513,11 +515,10 @@ postJob:
   tolerations: []
   affinity: {}
 
-## Use this field to add environment variables relevant to MinIO server. These fields will be passed on to MinIO container(s)
-## when Chart is deployed
+## Add environment variables for Silo. The MINIO_* names remain the stable
+## configuration interface and are passed to the Silo container(s).
 environment:
   ## Please refer for comprehensive list https://silo.pgsty.com/reference/minio-server/minio-server/
-  ## MINIO_SUBNET_LICENSE: "License key obtained from https://subnet.min.io"
   ## MINIO_BROWSER: "off"
 
 ## The name of a secret in the same kubernetes namespace which contain secret values
@@ -532,7 +533,7 @@ extraSecret: ~
 oidc:
   enabled: false
   configUrl: "https://identity-provider-url/.well-known/openid-configuration"
-  clientId: "minio"
+  clientId: "silo"
   clientSecret: ""
   # Provide existing client secret from the Kubernetes Secret resource, existing secret will have priority over `clientId` and/or `clientSecret``
   existingClientSecretName: ""
@@ -551,12 +552,12 @@ networkPolicy:
   # Specifies whether the policies created will be standard Network Policies (flavor: kubernetes)
   # or Cilium Network Policies (flavor: cilium)
   flavor: kubernetes
-  # allows external access to the minio api
+  # Allow external access to the Silo API.
   allowExternal: true
   ## @params networkPolicy.egress configuration of the egress traffic
   egress:
     ## @param networkPolicy.egress.enabled When enabled, an egress network policy will be
-    ## created allowing minio to connect to external data sources from kubernetes cluster.
+    ## created allowing Silo to connect to external data sources from the cluster.
     ##
     enabled: false
     ## @param networkPolicy.egress.ports Add individual ports to be allowed by the egress
@@ -574,7 +575,7 @@ networkPolicy:
     ## to:
     ##  - namespaceSelector:
     ##    matchExpressions:
-    ##    - {key: role, operator: In, values: [minio]}
+    ##    - {key: role, operator: In, values: [silo]}
     ##
     to: []
   # only when using flavor: cilium
@@ -588,13 +589,13 @@ podDisruptionBudget:
   enabled: false
   maxUnavailable: 1
 
-## Specify the service account to use for the MinIO pods. If 'create' is set to 'false'
+## Specify the service account to use for Silo pods. If 'create' is set to 'false'
 ## and 'name' is left unspecified, the account 'default' will be used.
 serviceAccount:
   create: true
   ## The name of the service account to use. If 'create' is 'true', a service account with that name
   ## will be created.
-  name: "minio-sa"
+  name: "silo-sa"
 
 metrics:
   serviceMonitor:
@@ -618,7 +619,7 @@ metrics:
     # Scrape timeout, for example `scrapeTimeout: 10s`
     scrapeTimeout: ~
 
-## ETCD settings: https://github.com/minio/minio/blob/master/docs/sts/etcd.md
+## ETCD settings. The existing MINIO_ETCD_* configuration interface is retained.
 ## Define endpoints to enable this section.
 etcd:
   endpoints: []

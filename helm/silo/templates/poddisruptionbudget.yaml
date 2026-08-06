@@ -6,12 +6,12 @@ apiVersion: policy/v1
 {{- end }}
 kind: PodDisruptionBudget
 metadata:
-  name: minio
+  name: {{ template "silo.fullname" . }}
   labels:
-    app: {{ template "minio.name" . }}
+    app: {{ template "silo.name" . }}
 spec:
   maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
   selector:
     matchLabels:
-      app: {{ template "minio.name" . }}
+      app: {{ template "silo.name" . }}
 {{- end }}

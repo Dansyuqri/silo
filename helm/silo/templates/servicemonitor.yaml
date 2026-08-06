@@ -2,13 +2,13 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "minio.fullname" . }}
+  name: {{ template "silo.fullname" . }}
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ .Values.metrics.serviceMonitor.namespace }}
   {{- end }}
   labels:
-    app: {{ template "minio.name" . }}
-    chart: {{ template "minio.chart" . }}
+    app: {{ template "silo.name" . }}
+    chart: {{ template "silo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.metrics.serviceMonitor.additionalLabels }}
@@ -27,7 +27,7 @@ spec:
           secret:
             name: {{ .Values.tls.certSecret }}
             key: {{ .Values.tls.publicCrt }}
-        serverName: {{ template "minio.fullname" . }}
+        serverName: {{ template "silo.fullname" . }}
     {{- else }}
     - port: http
       scheme: http
@@ -44,7 +44,7 @@ spec:
       {{- end }}
       {{- if not .Values.metrics.serviceMonitor.public }}
       bearerTokenSecret:
-        name: {{ template "minio.fullname" . }}-prometheus
+        name: {{ template "silo.fullname" . }}-prometheus
         key: token
       {{- end }}
   namespaceSelector:
@@ -52,7 +52,7 @@ spec:
       - {{ .Release.Namespace | quote }}
   selector:
     matchLabels:
-      app: {{ include "minio.name" . }}
+      app: {{ include "silo.name" . }}
       release: {{ .Release.Name }}
       monitoring: "true"
 {{- end }}
@@ -61,30 +61,30 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
 metadata:
-  name: {{ template "minio.fullname" . }}-cluster
+  name: {{ template "silo.fullname" . }}-cluster
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ .Values.metrics.serviceMonitor.namespace }}
   {{- end }}
   labels:
-    app: {{ template "minio.name" . }}
-    chart: {{ template "minio.chart" . }}
+    app: {{ template "silo.name" . }}
+    chart: {{ template "silo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.metrics.serviceMonitor.additionalLabels }}
       {{- toYaml .Values.metrics.serviceMonitor.additionalLabels | nindent 4 }}
     {{- end }}
 spec:
-  jobName: {{ template "minio.fullname" . }}
+  jobName: {{ template "silo.fullname" . }}
   {{- if .Values.tls.enabled }}
   tlsConfig:
     ca:
       secret:
         name: {{ .Values.tls.certSecret }}
         key: {{ .Values.tls.publicCrt }}
-    serverName: {{ template "minio.fullname" . }}
+    serverName: {{ template "silo.fullname" . }}
   {{- end }}
   prober:
-    url: {{ template "minio.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.service.port }}
+    url: {{ template "silo.fullname" . }}.{{ .Release.Namespace }}:{{ .Values.service.port }}
     path: /minio/v2/metrics/cluster
     {{- if .Values.tls.enabled }}
     scheme: https
@@ -97,7 +97,7 @@ spec:
   targets:
     staticConfig:
       static:
-      - {{ template "minio.fullname" . }}.{{ .Release.Namespace }}
+      - {{ template "silo.fullname" . }}.{{ .Release.Namespace }}
       {{- if not .Values.metrics.serviceMonitor.public }}
       {{- if .Values.metrics.serviceMonitor.interval }}
       interval: {{ .Values.metrics.serviceMonitor.interval }}
@@ -106,7 +106,7 @@ spec:
       scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
       {{- end }}
       bearerTokenSecret:
-        name: {{ template "minio.fullname" . }}-prometheus
+        name: {{ template "silo.fullname" . }}-prometheus
         key: token
       {{- end }}
 {{- end }}

@@ -2,16 +2,16 @@
 kind: CiliumNetworkPolicy
 apiVersion: cilium.io/v2
 metadata:
-  name: {{ template "minio.fullname" . }}
+  name: {{ template "silo.fullname" . }}
   labels:
-    app: {{ template "minio.name" . }}
-    chart: {{ template "minio.chart" . }}
+    app: {{ template "silo.name" . }}
+    chart: {{ template "silo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   endpointSelector:
     matchLabels:
-      app: {{ template "minio.name" . }}
+      app: {{ template "silo.name" . }}
       release: {{ .Release.Name }}
   ingress:
   - toPorts:
@@ -23,7 +23,7 @@ spec:
     {{- if not .Values.networkPolicy.allowExternal }}
     fromEndpoints:
     - matchLabels:
-        {{ template "minio.name" . }}-client: "true"
+        {{ template "silo.name" . }}-client: "true"
     {{- end }}
   egress:
   {{- range $entity := .Values.networkPolicy.egressEntities }}

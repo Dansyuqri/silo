@@ -2,10 +2,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "minio.fullname" . }}-post-job
+  name: {{ template "silo.fullname" . }}-post-job
   labels:
-    app: {{ template "minio.name" . }}-post-job
-    chart: {{ template "minio.chart" . }}
+    app: {{ template "silo.name" . }}-post-job
+    chart: {{ template "silo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
   annotations:
@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ template "minio.name" . }}-job
+        app: {{ template "silo.name" . }}-job
         release: {{ .Release.Name }}
         {{- if .Values.podLabels }}
           {{- toYaml .Values.podLabels | nindent 8 }}
@@ -28,7 +28,7 @@ spec:
       {{- end }}
     spec:
       restartPolicy: OnFailure
-      {{- include "minio.imagePullSecrets" . | indent 6 }}
+      {{- include "silo.imagePullSecrets" . | indent 6 }}
       {{- if .Values.nodeSelector }}
       nodeSelector: {{- toYaml .Values.postJob.nodeSelector | nindent 8 }}
       {{- end }}
@@ -46,13 +46,13 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
-        - name: minio-configuration
+        - name: silo-configuration
           projected:
             sources:
               - configMap:
-                  name: {{ template "minio.fullname" . }}
+                  name: {{ template "silo.fullname" . }}
               - secret:
-                  name: {{ template "minio.secretName" . }}
+                  name: {{ template "silo.secretName" . }}
               {{- range (concat .Values.users (default (list) .Values.svcaccts)) }}
               {{- if .existingSecret }}
               - secret:
@@ -87,7 +87,7 @@ spec:
       {{- end }}
       {{- if .Values.policies }}
       initContainers:
-        - name: minio-make-policy
+        - name: silo-make-policy
           image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
           {{- if .Values.makePolicyJob.securityContext.enabled }}
           {{- with .Values.makePolicyJob.containerSecurityContext }}
@@ -103,15 +103,15 @@ spec:
           {{- end }}
           env:
             - name: MINIO_ENDPOINT
-              value: {{ template "minio.fullname" . }}
+              value: {{ template "silo.fullname" . }}
             - name: MINIO_PORT
               value: {{ .Values.service.port | quote }}
           volumeMounts:
             - name: etc-path
-              mountPath: /etc/minio/mc
+              mountPath: /etc/silo/mc
             - name: tmp
               mountPath: /tmp
-            - name: minio-configuration
+            - name: silo-configuration
               mountPath: /config
             {{- if .Values.tls.enabled }}
             - name: cert-secret-volume-mc
@@ -121,7 +121,7 @@ spec:
       {{- end }}
       containers:
         {{- if .Values.buckets }}
-        - name: minio-make-bucket
+        - name: silo-make-bucket
           image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
           {{- if .Values.makeBucketJob.securityContext.enabled }}
           {{- with .Values.makeBucketJob.containerSecurityContext }}
@@ -137,15 +137,15 @@ spec:
           {{- end }}
           env:
             - name: MINIO_ENDPOINT
-              value: {{ template "minio.fullname" . }}
+              value: {{ template "silo.fullname" . }}
             - name: MINIO_PORT
               value: {{ .Values.service.port | quote }}
           volumeMounts:
             - name: etc-path
-              mountPath: /etc/minio/mc
+              mountPath: /etc/silo/mc
             - name: tmp
               mountPath: /tmp
-            - name: minio-configuration
+            - name: silo-configuration
               mountPath: /config
             {{- if .Values.tls.enabled }}
             - name: cert-secret-volume-mc
@@ -154,7 +154,7 @@ spec:
           resources: {{- toYaml .Values.makeBucketJob.resources | nindent 12 }}
         {{- end }}
         {{- if .Values.users }}
-        - name: minio-make-user
+        - name: silo-make-user
           image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
           {{- if .Values.makeUserJob.securityContext.enabled }}
           {{- with .Values.makeUserJob.containerSecurityContext }}
@@ -170,15 +170,15 @@ spec:
           {{- end }}
           env:
             - name: MINIO_ENDPOINT
-              value: {{ template "minio.fullname" . }}
+              value: {{ template "silo.fullname" . }}
             - name: MINIO_PORT
               value: {{ .Values.service.port | quote }}
           volumeMounts:
             - name: etc-path
-              mountPath: /etc/minio/mc
+              mountPath: /etc/silo/mc
             - name: tmp
               mountPath: /tmp
-            - name: minio-configuration
+            - name: silo-configuration
               mountPath: /config
             {{- if .Values.tls.enabled }}
             - name: cert-secret-volume-mc
@@ -187,7 +187,7 @@ spec:
           resources: {{- toYaml .Values.makeUserJob.resources | nindent 12 }}
         {{- end }}
         {{- if .Values.customCommands }}
-        - name: minio-custom-command
+        - name: silo-custom-command
           image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
           {{- if .Values.customCommandJob.securityContext.enabled }}
           {{- with .Values.customCommandJob.containerSecurityContext }}
@@ -203,15 +203,15 @@ spec:
           {{- end }}
           env:
             - name: MINIO_ENDPOINT
-              value: {{ template "minio.fullname" . }}
+              value: {{ template "silo.fullname" . }}
             - name: MINIO_PORT
               value: {{ .Values.service.port | quote }}
           volumeMounts:
             - name: etc-path
-              mountPath: /etc/minio/mc
+              mountPath: /etc/silo/mc
             - name: tmp
               mountPath: /tmp
-            - name: minio-configuration
+            - name: silo-configuration
               mountPath: /config
             {{- if .Values.tls.enabled }}
             - name: cert-secret-volume-mc
@@ -223,7 +223,7 @@ spec:
           resources: {{- toYaml .Values.customCommandJob.resources | nindent 12 }}
         {{- end }}
         {{- if .Values.svcaccts }}
-        - name: minio-make-svcacct
+        - name: silo-make-svcacct
           image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
           {{- if .Values.makeServiceAccountJob.securityContext.enabled }}
           {{- with .Values.makeServiceAccountJob.containerSecurityContext }}
@@ -239,15 +239,15 @@ spec:
           {{- end }}
           env:
             - name: MINIO_ENDPOINT
-              value: {{ template "minio.fullname" . }}
+              value: {{ template "silo.fullname" . }}
             - name: MINIO_PORT
               value: {{ .Values.service.port | quote }}
           volumeMounts:
             - name: etc-path
-              mountPath: /etc/minio/mc
+              mountPath: /etc/silo/mc
             - name: tmp
               mountPath: /tmp
-            - name: minio-configuration
+            - name: silo-configuration
               mountPath: /config
             {{- if .Values.tls.enabled }}
             - name: cert-secret-volume-mc

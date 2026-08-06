@@ -1,29 +1,29 @@
-{{- if .Values.consoleIngress.enabled -}}
-{{- $fullName := printf "%s-console" (include "minio.fullname" .) -}}
-{{- $servicePort := .Values.consoleService.port -}}
-{{- $ingressPath := .Values.consoleIngress.path -}}
-apiVersion: {{ template "minio.consoleIngress.apiVersion" . }}
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "silo.fullname" . -}}
+{{- $servicePort := .Values.service.port -}}
+{{- $ingressPath := .Values.ingress.path -}}
+apiVersion: {{ template "silo.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    app: {{ template "minio.name" . }}
-    chart: {{ template "minio.chart" . }}
+    app: {{ template "silo.name" . }}
+    chart: {{ template "silo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    {{- with .Values.consoleIngress.labels }}
+    {{- with .Values.ingress.labels }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.consoleIngress.annotations }}
+  {{- with .Values.ingress.annotations }}
   annotations: {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.consoleIngress.ingressClassName }}
-  ingressClassName: {{ .Values.consoleIngress.ingressClassName }}
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
   {{- end }}
-  {{- if .Values.consoleIngress.tls }}
+  {{- if .Values.ingress.tls }}
   tls:
-    {{- range .Values.consoleIngress.tls }}
+    {{- range .Values.ingress.tls }}
     - hosts:
       {{- range .hosts }}
         - {{ . | quote }}
@@ -32,7 +32,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.consoleIngress.hosts }}
+    {{- range .Values.ingress.hosts }}
     - http:
         paths:
           - path: {{ $ingressPath }}
