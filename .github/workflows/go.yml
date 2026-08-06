@@ -34,11 +34,12 @@ jobs:
 
       - name: Check gofmt
         run: |
-          unformatted=$(gofmt -l main.go cmd internal)
-          if [ -n "${unformatted}" ]; then
+          mapfile -t unformatted < <(gofmt -l main.go cmd internal \
+            buildscripts/rebrand-guard buildscripts/helm-migration-guard)
+          if [ "${#unformatted[@]}" -ne 0 ]; then
             echo "The following files are not gofmt-formatted:"
-            echo "${unformatted}"
-            gofmt -d ${unformatted}
+            printf '%s\n' "${unformatted[@]}"
+            gofmt -d "${unformatted[@]}"
             exit 1
           fi
 
@@ -49,6 +50,12 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+      - name: Verify rebrand compatibility contracts
+        run: |
+          go run ./buildscripts/rebrand-guard
+          buildscripts/verify-rebrand.sh
+          dockerscripts/docker-entrypoint_test.sh
 
   quality:
     name: Lint, Generated Files

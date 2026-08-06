@@ -4,12 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Published RELEASE.* tag to package as pgsty/minio"
+        description: "Published RELEASE.* tag to package as pgsty/silo"
         required: true
         type: string
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 concurrency:
   group: docker-release
@@ -71,6 +74,15 @@ jobs:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
 
+      - name: Verify workflow identity matches release source
+        run: |
+          set -euo pipefail
+          CHECKED_OUT_REVISION="$(git rev-parse HEAD)"
+          if [ "${CHECKED_OUT_REVISION}" != "${GITHUB_SHA}" ]; then
+            echo "Checked out ${CHECKED_OUT_REVISION}, but workflow identity is ${GITHUB_SHA}. Dispatch this workflow from ${RELEASE_TAG}." >&2
+            exit 1
+          fi
+
       - name: Prepare verified Docker contexts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,9 +91,9 @@ jobs:
           assets_dir="docker-release/assets"
           mkdir -p "${assets_dir}"
 
-          amd64_archive="minio_${PKG_VERSION}_linux_amd64.tar.gz"
-          arm64_archive="minio_${PKG_VERSION}_linux_arm64.tar.gz"
-          checksums="minio_${PKG_VERSION}_checksums.txt"
+          amd64_archive="silo_${PKG_VERSION}_linux_amd64.tar.gz"
+          arm64_archive="silo_${PKG_VERSION}_linux_arm64.tar.gz"
+          checksums="silo_${PKG_VERSION}_checksums.txt"
           gh release download "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" \
             --dir "${assets_dir}" \
             --pattern "${amd64_archive}" \
@@ -94,6 +106,16 @@ jobs:
           cd "${assets_dir}"
           grep -F "  ${amd64_archive}" "${checksums}" | sha256sum --check
           grep -F "  ${arm64_archive}" "${checksums}" | sha256sum --check
+
+          # The checksum manifest and both archives must have provenance from
+          # this repository's release workflow at the exact checked-out tag.
+          for artifact in "${checksums}" "${amd64_archive}" "${arm64_archive}"; do
+            gh attestation verify "${artifact}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml" \
+              --source-digest "$(git -C "${GITHUB_WORKSPACE}" rev-parse HEAD)" \
+              --source-ref "refs/tags/${RELEASE_TAG}" >/dev/null
+          done
           cd "${GITHUB_WORKSPACE}"
 
           # Dockerfile.goreleaser expects the binary at the context root and
@@ -101,9 +123,9 @@ jobs:
           # GoReleaser used to assemble via extra_files.
           for arch in amd64 arm64; do
             context="docker-release/${arch}"
-            archive="${assets_dir}/minio_${PKG_VERSION}_linux_${arch}.tar.gz"
+            archive="${assets_dir}/silo_${PKG_VERSION}_linux_${arch}.tar.gz"
             mkdir -p "${context}/dockerscripts"
-            tar -xzf "${archive}" -C "${context}" minio
+            tar -xzf "${archive}" -C "${context}" silo
             cp Dockerfile.goreleaser LICENSE CREDITS "${context}/"
             cp dockerscripts/docker-entrypoint.sh dockerscripts/download-static-curl.sh \
               "${context}/dockerscripts/"
@@ -125,7 +147,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          syft-version: v1.50.0
+
       - name: Build and push amd64 image
+        id: build-amd64
         uses: docker/build-push-action@v6
         with:
           context: docker-release/amd64
@@ -133,14 +161,15 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            pgsty/minio:${{ env.RELEASE_TAG }}-amd64
-            pgsty/minio:latest-amd64
+            pgsty/silo:${{ env.RELEASE_TAG }}-amd64
+            pgsty/silo:latest-amd64
           labels: |
             org.opencontainers.image.version=${{ env.RELEASE_TAG }}
             org.opencontainers.image.created=${{ env.PUBLISHED_AT }}
             org.opencontainers.image.revision=${{ env.RELEASE_REVISION }}
 
       - name: Build and push arm64 image
+        id: build-arm64
         uses: docker/build-push-action@v6
         with:
           context: docker-release/arm64
@@ -148,8 +177,8 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            pgsty/minio:${{ env.RELEASE_TAG }}-arm64
-            pgsty/minio:latest-arm64
+            pgsty/silo:${{ env.RELEASE_TAG }}-arm64
+            pgsty/silo:latest-arm64
           labels: |
             org.opencontainers.image.version=${{ env.RELEASE_TAG }}
             org.opencontainers.image.created=${{ env.PUBLISHED_AT }}
@@ -158,13 +187,64 @@ jobs:
       - name: Publish multi-architecture manifests
         run: |
           set -euo pipefail
+          mkdir -p docker-release/metadata
           docker buildx imagetools create \
-            --tag "pgsty/minio:${RELEASE_TAG}" \
-            "pgsty/minio:${RELEASE_TAG}-amd64" \
-            "pgsty/minio:${RELEASE_TAG}-arm64"
+            --tag "pgsty/silo:${RELEASE_TAG}" \
+            --metadata-file docker-release/metadata/release.json \
+            "pgsty/silo:${RELEASE_TAG}-amd64" \
+            "pgsty/silo:${RELEASE_TAG}-arm64"
           docker buildx imagetools create \
-            --tag "pgsty/minio:latest" \
-            "pgsty/minio:latest-amd64" \
-            "pgsty/minio:latest-arm64"
-          docker buildx imagetools inspect "pgsty/minio:${RELEASE_TAG}"
-          docker buildx imagetools inspect "pgsty/minio:latest"
+            --tag "pgsty/silo:latest" \
+            --metadata-file docker-release/metadata/latest.json \
+            "pgsty/silo:latest-amd64" \
+            "pgsty/silo:latest-arm64"
+          docker buildx imagetools inspect "pgsty/silo:${RELEASE_TAG}"
+          docker buildx imagetools inspect "pgsty/silo:latest"
+
+          RELEASE_DIGEST="$(jq -r '."containerimage.descriptor".digest' docker-release/metadata/release.json)"
+          LATEST_DIGEST="$(jq -r '."containerimage.descriptor".digest' docker-release/metadata/latest.json)"
+          if ! [[ "${RELEASE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid release manifest digest: ${RELEASE_DIGEST}" >&2
+            exit 1
+          fi
+          if [ "${RELEASE_DIGEST}" != "${LATEST_DIGEST}" ]; then
+            echo "Release and latest tags resolved to different manifests" >&2
+            exit 1
+          fi
+          echo "SILO_IMAGE_DIGEST=${RELEASE_DIGEST}" >> "${GITHUB_ENV}"
+
+      - name: Generate architecture image SBOMs
+        env:
+          AMD64_DIGEST: ${{ steps.build-amd64.outputs.digest }}
+          ARM64_DIGEST: ${{ steps.build-arm64.outputs.digest }}
+          SYFT_CHECK_FOR_APP_UPDATE: "false"
+        run: |
+          set -euo pipefail
+          mkdir -p docker-release/sbom
+          syft "registry:index.docker.io/pgsty/silo@${AMD64_DIGEST}" \
+            --output "spdx-json=docker-release/sbom/linux-amd64.spdx.json"
+          syft "registry:index.docker.io/pgsty/silo@${ARM64_DIGEST}" \
+            --output "spdx-json=docker-release/sbom/linux-arm64.spdx.json"
+
+      - name: Attest amd64 image SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: index.docker.io/pgsty/silo
+          subject-digest: ${{ steps.build-amd64.outputs.digest }}
+          sbom-path: docker-release/sbom/linux-amd64.spdx.json
+          push-to-registry: true
+
+      - name: Attest arm64 image SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: index.docker.io/pgsty/silo
+          subject-digest: ${{ steps.build-arm64.outputs.digest }}
+          sbom-path: docker-release/sbom/linux-arm64.spdx.json
+          push-to-registry: true
+
+      - name: Attest multi-architecture image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: index.docker.io/pgsty/silo
+          subject-digest: ${{ env.SILO_IMAGE_DIGEST }}
+          push-to-registry: true
