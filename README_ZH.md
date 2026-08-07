@@ -1,13 +1,14 @@
 <h1 align="center">
   <a href="https://silo.pgsty.com/zh/">
-    <img src=".github/silo-logo.svg" alt="Silo" width="112"><br>
+    <img src=".github/silo-logo.svg" alt="Silo" width="160">
   </a>
 </h1>
 
 
 <p align="center">
-  <strong>S3 兼容对象存储 —— 由 PIGSTY 维护的 MinIO 社区分支</strong>
+  <strong>S3 兼容对象存储 —— 由 PGSTY 维护的 MinIO 社区分支</strong>
 </p>
+
 
 <p align="center">
   <a href="https://silo.pgsty.com/zh/">官网</a> ·
@@ -15,6 +16,7 @@
   <a href="https://silo.pgsty.com/zh/download/">下载</a> ·
   <a href="https://silo.pgsty.com/zh/tags/silo/">版本说明</a> ·
   <a href="https://silo.pgsty.com/zh/compatibility/server/">兼容性</a> ·
+  <a href="https://silo.pgsty.com/zh/about/manifesto/">宣言</a> ·
   <a href="SECURITY.md">安全策略</a> ·
   <a href="README.md">English</a>
 </p>
@@ -28,234 +30,132 @@
 </p>
 
 > [!IMPORTANT]
-> Silo 是由 [Pigsty](https://pigsty.cc) 独立维护、从 [`pgsty/silo`](https://github.com/pgsty/silo) 发布的开源 MinIO 社区分支。本项目与 MinIO, Inc. 不存在隶属、背书或赞助关系；文中使用 “MinIO” 仅用于说明上游项目及兼容谱系。
+> **PGSTY Silo**（以下简称 Silo）是由 [Pigsty](https://pigsty.cc) 独立维护、从 [`pgsty/silo`](https://github.com/pgsty/silo) 发布的开源 MinIO 社区分支。本项目与 MinIO, Inc. 不存在隶属、背书或赞助关系；文中使用 “MinIO” 仅用于说明上游项目及兼容谱系。
 
 > [!NOTE]
-> 2026-08-06，本仓库由 `pgsty/minio` 更名为 `pgsty/silo`，默认分支由 `master` 更名为 `main`。如果你需要以原本 MinIO 形态维持的归档构件，它们位于归档的 [`minio`](https://github.com/pgsty/silo/tree/minio) 分支，以及截止到 [`RELEASE.2026-08-04T00-00-00Z`](https://github.com/pgsty/silo/releases/tag/RELEASE.2026-08-04T00-00-00Z) 的历次发布中；这些资产与 `docker.io/pgsty/minio` 镜像保持已发布状态且不做改动。本次更名只改变产品与交付物名称 —— `MINIO_*` 变量、`minio_*` 指标、`x-minio-*` 头、`/minio/*` 路由与磁盘格式均保持不变。
+> 2026-08-06，本仓库由 `pgsty/minio` 更名为 `pgsty/silo`，默认分支由 `master` 更名为 `main`。以原 MinIO 形态维持的归档构件仍位于归档的 [`minio`](https://github.com/pgsty/silo/tree/minio) 分支，以及截止 [`RELEASE.2026-08-04T00-00-00Z`](https://github.com/pgsty/silo/releases/tag/RELEASE.2026-08-04T00-00-00Z) 的历次发布中。
 
 ## 概述
 
-Silo 维护一条源自开源 MinIO 服务端的下游版本线，为上游停止社区发行后仍在运行 MinIO 兼容部署的用户提供持续构建与发行产物。Pigsty 使用 Silo 提供对象存储，包括作为可选的 PostgreSQL 备份仓库。
+上游停止社区发行后，Silo 为开源 MinIO 服务端维护一条持续可用的版本线：构建、软件包、多架构镜像、安全修复与完整 Web 控制台。Pigsty 在生产环境中用它承载 PostgreSQL 备份存储。
 
-本分支遵循一条原则：**改名的是产品与交付物，不是协议与你的数据。** `silo` 可执行文件、软件包、服务与容器镜像使用新名称，而 S3 API、`MINIO_*` 变量、`minio_*` 指标、`x-minio-*` 头、保留路由与磁盘格式保持不变。具体差异记录在[兼容性说明](https://silo.pgsty.com/zh/compatibility/server/)中。
+它只遵循一条原则：**改名的是产品与交付物，不是协议与你的数据。** 其余内容都在 [silo.pgsty.com](https://silo.pgsty.com/zh/)。
 
-项目统一门户为 [silo.pgsty.com](https://silo.pgsty.com/zh/)，集中提供文档、下载安装、版本与安全动态及项目背景。
+**相关项目：**[`pgsty/mc`](https://github.com/pgsty/mc) 客户端（以 `mcli` 发行） · [`pgsty/silo-console`](https://github.com/pgsty/silo-console) · [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) · [`pgsty/pigsty`](https://github.com/pgsty/pigsty)
 
-## 按需求选择入口
+<p align="center">
+  <img src="https://silo.pgsty.com/images/silo-console/console-metrics-simple.webp" alt="Silo 控制台">
+</p>
 
-| 需求 | 权威入口 |
-| :-- | :-- |
-| 项目概览与全站导航 | [Silo 官网](https://silo.pgsty.com/zh/) |
-| 安装方式与软件下载 | [下载与安装](https://silo.pgsty.com/zh/download/) |
-| 运维、管理、开发与参考指南 | [文档](https://silo.pgsty.com/zh/docs/) |
-| 本服务端的版本说明 | [Silo 版本说明](https://silo.pgsty.com/zh/tags/silo/) |
-| 与上游 MinIO 的差异 | [Silo vs. MinIO 兼容性说明](https://silo.pgsty.com/zh/compatibility/server/) |
-| 项目动态与安全通告 | [博客](https://silo.pgsty.com/zh/blog/) · [版本发布](https://silo.pgsty.com/zh/blog/release/)与[安全通告](https://silo.pgsty.com/zh/blog/security/) |
-| 带版本的二进制、校验和与源码归档 | [GitHub Releases](https://github.com/pgsty/silo/releases) |
-| 缺陷报告与功能讨论 | [GitHub Issues](https://github.com/pgsty/silo/issues) |
-| 私密漏洞报告 | [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) |
-| 许可证、署名与商标信息 | [`LICENSE`](LICENSE) · [`NOTICE`](NOTICE) · [`CREDITS`](CREDITS) · 门户的[许可证](https://silo.pgsty.com/zh/about/license/)、[署名归属](https://silo.pgsty.com/zh/about/attribution/)与[商标政策](https://silo.pgsty.com/zh/about/trademark/)页面 |
-
-## 相关项目
-
-| 仓库 | 说明 |
-| :-- | :-- |
-| [`pgsty/silo`](https://github.com/pgsty/silo) | 本仓库 —— Silo 对象存储服务器，S3 兼容的 MinIO fork |
-| [`pgsty/mc`](https://github.com/pgsty/mc) | Silo 命令行客户端，以 `mcli` 发行、保留 `mc` 命令名 |
-| [`pgsty/silo-console`](https://github.com/pgsty/silo-console) | Web 管理控制台，内嵌于服务端构建 |
-| [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) | 为 Silo 系 fork 维护的共享 Go 包 |
-| [`pgsty/pigsty`](https://github.com/pgsty/pigsty) | Pigsty —— 内置 Silo 作为对象存储的 PostgreSQL 发行版 |
-
-## 维护政策
-
-活跃版本线的维护范围包括：
-
-- 构建与依赖项维护；
-- 适用的安全修复与公告；
-- 针对可复现缺陷的范围明确的修复；
-- 带版本的二进制、软件包、校验和与多架构镜像；
-- Web Console、客户端、文档与 Pigsty 集成。
-
-改动保持克制，并在可行时提供测试。所有维护均为尽力而为，不承诺固定的响应、修复或发布时间。
-
-### 范围之外
-
-- 独立产品路线图、新存储引擎或假设性的 S3 新特性；
-- 大规模重写或显著扩大下游差异的改动；
-- 历史版本或多条支持分支；
-- 商业支持、SLA、7×24 服务或 SUBNET 服务；
-- 部署设计、访问控制、监控、备份与恢复。
-
-## 治理
-
-服务端、客户端、控制台与共享包在同一套发布流程下共同维护：提交必须签署 DCO、Pull Request 经过评审、以 `RELEASE.YYYY-MM-DDTHH-MM-SSZ` 标签发布，产物附带校验和、SPDX SBOM、Sigstore 签名清单与 GitHub 构建证明。每个版本都会在门户发布[版本说明](https://silo.pgsty.com/zh/tags/silo/)；安全问题按照 [`SECURITY.md`](SECURITY.md) 与仓库[安全公告](docs/security/advisories.md)处理。上游版权、许可证与第三方声明完整保留于 [`LICENSE`](LICENSE)、[`NOTICE`](NOTICE) 与 [`CREDITS`](CREDITS)。
-
-## 兼容策略
-
-Silo 尽量保留：
-
-- `github.com/minio/minio` module path 与 `github.com/minio/*` 导入路径；
-- MinIO 兼容的 S3 API、线协议、`MINIO_*` 环境变量、指标、协议头、保留路由与存储元数据；
-- `RELEASE.YYYY-MM-DDTHH-MM-SSZ` 标签，以及容器入口对旧式 `minio …` 参数的转换。
-
-Silo 自有交付面统一使用 `silo` 可执行文件、软件包、服务、Helm Chart 与 `pgsty/silo` 容器镜像；原生交付物不会安装 `minio` 二进制别名。
-
-兼容性是默认约束。只要不会留下安全问题，Silo 就保留既有的协议、客户端、配置与运维行为；只有在修复重大安全问题确有必要时才会打破兼容，并在版本说明中明确受影响行为与迁移方式。每个版本仍应视为下游升级：锁定版本，阅读[版本说明](https://silo.pgsty.com/zh/tags/silo/)、[兼容性说明](https://silo.pgsty.com/zh/compatibility/server/)与[安全公告](docs/security/advisories.md)，保留回滚路径，并在生产使用前完成测试。
-
-## 下载与发行产物
-
-请先在[下载与安装](https://silo.pgsty.com/zh/download/)页面选择合适的安装方式；GitHub Releases 仍是带版本服务端二进制、校验和与源码归档的获取位置。
-
-| 产物 | 位置 |
-| :-- | :-- |
-| 源码 | [`github.com/pgsty/silo`](https://github.com/pgsty/silo) |
-| 容器镜像 | [`pgsty/silo`](https://hub.docker.com/r/pgsty/silo)，支持 `linux/amd64` 与 `linux/arm64` 多架构清单 |
-| 服务端二进制与校验和 | [GitHub Releases](https://github.com/pgsty/silo/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
-| Linux 软件包 | RPM、DEB、APK，并通过 [Pigsty 软件仓库](https://pigsty.cc/docs/repo/) 分发 |
-| 客户端 | [`pgsty/mc`](https://github.com/pgsty/mc)，容器内以 `mcli` 提供，并保留 `mc` 兼容别名 |
-| 管理控制台 | [`pgsty/silo-console`](https://github.com/pgsty/silo-console)，通过兼容导入路径 `github.com/minio/console` 嵌入服务端构建 |
-| 共享库 | [`pgsty/silo-pkg`](https://github.com/pgsty/silo-pkg) v3.11.0，通过 `replace` 指令使用，同时保留 `github.com/minio/pkg/v3` 导入路径 |
-
-每个新版本都会为各平台归档和软件包发布 SPDX JSON SBOM。归档与软件包的校验和清单分别带有无长期密钥的 Sigstore 签名包；GitHub 制品证明则为全部可下载产物及多架构容器镜像记录已签名的构建来源。
-
-下载归档及配套文件后，请分别验证完整性、已发布 SBOM、签名清单与构建来源：
+## 快速上手
 
 ```bash
-# 完整性：选择与你下载产物相符的一行。
-grep -F '  silo_<version>_linux_amd64.tar.gz' \
-  silo_<version>_checksums.txt | sha256sum --check
-
-# 归档 SBOM 是另一个独立校验的 Release 产物。
-grep -F '  silo_<version>_linux_amd64.tar.gz.sbom.json' \
-  silo_<version>_checksums.txt | sha256sum --check
-
-# 验证归档/SBOM 校验和清单的签名。
-cosign verify-blob \
-  --bundle silo_<version>_checksums.txt.sigstore.json \
-  --certificate-identity-regexp \
-    '^https://github.com/pgsty/(minio|silo)/\.github/workflows/release\.yml@refs/(tags/RELEASE\..+|heads/(master|main))$' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  silo_<version>_checksums.txt
-
-# 在线验证本仓库签发的构建来源。
-gh attestation verify silo_<version>_linux_amd64.tar.gz \
-  --repo pgsty/silo
-```
-
-软件包使用 `silo_<version>_packages_checksums.txt` 及其相邻的 Sigstore
-签名包，并使用相同的 identity 与 issuer 约束；请用 SPDX 工具检查已验证的
-SPDX JSON SBOM。按 digest 验证多架构容器清单的构建来源：
-
-```bash
-gh attestation verify \
-  oci://index.docker.io/pgsty/silo@sha256:<manifest-digest> \
-  --repo pgsty/silo
-```
-
-分架构 SBOM 证明附在 `amd64` 与 `arm64` 平台镜像的 digest 上，而非多架构
-清单上，需要分别显式验证：
-
-```bash
-gh attestation verify \
-  oci://index.docker.io/pgsty/silo@sha256:<platform-digest> \
-  --repo pgsty/silo \
-  --predicate-type https://spdx.dev/Document/v2.3
-```
-
-按 digest 验证可避免信任可变镜像标签。
-
-### 原生软件包迁移
-
-`silo` RPM、DEB 与 APK 不针对 `minio` 声明 `Provides`、`Obsoletes`、
-`Replaces` 或包级 `Conflicts`，因此可以与已有 MinIO 软件包并存安装，
-不会被普通升级静默替换。两个 systemd unit 在运行时互斥，应由管理员显式
-切换，不能同时启动。
-
-切换前请记录旧 unit 的 enabled/active 状态与 `User`/`Group`，并备份
-`/etc/default/minio`。Silo 先读取该旧配置，再读取 `/etc/default/silo`；后者
-中由管理员设置的同名变量优先。如现有数据必须继续使用原 UID/GID，请创建
-`/etc/systemd/system/silo.service.d/10-legacy-user.conf`：
-
-```ini
-[Service]
-User=<legacy-user>
-Group=<legacy-group>
-```
-
-执行 `systemctl daemon-reload`，先停用并停止 `minio.service`，再启用并启动
-`silo.service`。确认健康检查、S3、Admin API、指标与日志后，才 mask 或卸载
-旧服务。软件包迁移期间不要递归修改数据属主；在回滚观察窗口内保留旧包与
-旧 unit。
-
-## 快速开始
-
-本地体验：
-
-```bash
-mkdir -p data
-
-export MINIO_ROOT_USER=minioadmin
-export MINIO_ROOT_PASSWORD=change-me-long-password
-
-docker run -d --name silo \
-  -p 9000:9000 \
-  -p 9001:9001 \
-  -e MINIO_ROOT_USER \
-  -e MINIO_ROOT_PASSWORD \
+docker run -d --name silo -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=change-me-long-password \
   -v "$PWD/data:/data" \
   docker.io/pgsty/silo:latest server /data --console-address ":9001"
 ```
 
-管理控制台位于 <http://localhost:9001>，S3 API 位于 <http://localhost:9000>。
+<p align="center">
+  <img src="https://silo.pgsty.com/images/silo-console/console-login.webp" alt="Silo 控制台">
+</p>
 
-镜像内置兼容客户端 `mcli`：
+控制台位于 <http://localhost:9001>，S3 API 位于 <http://localhost:9000>。镜像内置客户端 `mcli`：
 
 ```bash
-docker exec silo mcli alias set local http://127.0.0.1:9000 \
-  "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-docker exec silo mcli mb local/demo
-docker exec silo mcli ls local
+docker exec silo mcli alias set local http://127.0.0.1:9000 minioadmin change-me-long-password
+docker exec silo mcli mb local/demo && docker exec silo mcli ls local
 ```
 
 > [!WARNING]
-> 生产环境应锁定版本，使用独立凭据与 TLS，配置监控，保留独立备份，并验证恢复流程。
+> 生产环境应锁定版本，使用独立凭据与 TLS，配置监控，保留独立备份，并验证恢复流程。请从[文档](https://silo.pgsty.com/zh/docs/)开始。
 
-从源码构建服务端：
+## 安装
 
-```bash
-go build -o silo .
-./silo --version
-```
+| 方式 | 位置 |
+| :-- | :-- |
+| 容器镜像 | [`pgsty/silo`](https://hub.docker.com/r/pgsty/silo)，支持 `linux/amd64` 与 `linux/arm64` |
+| 二进制 | [GitHub Releases](https://github.com/pgsty/silo/releases)，覆盖 Linux、macOS、Windows 的 `amd64` 与 `arm64` |
+| 软件包 | RPM、DEB、APK，也可通过 [Pigsty 软件仓库](https://pigsty.cc/docs/repo/) 安装 |
+| Kubernetes | Helm Chart，参见[下载与安装](https://silo.pgsty.com/zh/download/) |
+| 源码构建 | `go build -o silo . && ./silo --version` |
 
-其他安装方式（包括原生软件包、二进制、Podman、Kubernetes、源码构建与 Pigsty Ansible）请前往[下载与安装](https://silo.pgsty.com/zh/download/)；生产部署与管理请从 [Silo 文档](https://silo.pgsty.com/zh/docs/)开始。Pigsty 用户也可以直接使用 [Pigsty MinIO 模块](https://pigsty.cc/docs/minio/)。
+每个版本都附带校验和、SPDX SBOM、Sigstore 签名清单与 GitHub 构建证明。完整安装方式与验证命令见[下载与安装](https://silo.pgsty.com/zh/download/)；从上游 MinIO 迁移 —— 包括接管既有 `minio.service` 与 `/etc/default/minio` —— 见[迁移指南](https://silo.pgsty.com/zh/compatibility/migration/)与[二进制与服务说明](https://silo.pgsty.com/zh/compatibility/binary/)。
 
-## 安全
+## 兼容性
 
-安全修复面向当前活跃开发分支，并记录在仓库[安全公告](docs/security/advisories.md)与门户[安全通告](https://silo.pgsty.com/zh/blog/security/)中。请按照 [`SECURITY.md`](SECURITY.md) 与 [`VULNERABILITY_REPORT.md`](VULNERABILITY_REPORT.md) 私密报告漏洞；同时影响上游 MinIO 的问题也应向上游报告。
+S3 API、`MINIO_*` 环境变量、`minio_*` 指标、`x-minio-*` 头、`/minio/*` 路由、`github.com/minio/*` 导入路径与磁盘格式（含 `.minio.sys`）原样保留，并由 CI 兼容性门禁冻结。只有 Silo 自有交付面改名：`silo` 可执行文件、软件包、服务、Helm Chart 与容器镜像 —— 原生交付物不会安装 `minio` 二进制别名。
 
-## 贡献
+与上游的全部分歧，以逐项核验代码的[兼容性审计](https://silo.pgsty.com/zh/compatibility/server/)形式维护。每个版本仍应视为下游升级：锁定版本，阅读[版本说明](https://silo.pgsty.com/zh/tags/silo/)，并保留回滚路径。
 
-欢迎安全与依赖项更新、可复现缺陷修复、测试、发布自动化、打包与文档改进。
+## 安全与贡献
 
-Issue 与 Pull Request 应说明受影响版本、复现步骤、影响、预期行为、测试与兼容性说明。大型改动请先提交 Issue 讨论。
+请按照 [`SECURITY.md`](SECURITY.md) 私密报告漏洞；每项修复都会发布公开[安全公告](https://silo.pgsty.com/zh/blog/security/)。本项目不要求签署 CLA：贡献按 AGPL-3.0-or-later（inbound=outbound）接收，只需 DCO 签署（`git commit -s`），详见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
-本项目不要求签署 CLA：贡献按项目许可证（AGPL-3.0-or-later，inbound=outbound）接收，贡献者保留自己的版权。每个提交都必须按照 [DCO](https://developercertificate.org/) 签署（`git commit -s`），详见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
+## 贡献者
+
+<table>
+  <tr>
+    <td align="center" width="150">
+      <a href="https://github.com/ZouhairCharef"><img src="https://github.com/ZouhairCharef.png?size=100" width="72" alt="ZouhairCharef"><br><sub><b>@ZouhairCharef</b></sub></a><br><sub>CVE-2026-34986</sub>
+    </td>
+    <td align="center" width="150">
+      <a href="https://github.com/mfredenhagen"><img src="https://github.com/mfredenhagen.png?size=100" width="72" alt="mfredenhagen"><br><sub><b>@mfredenhagen</b></sub></a><br><sub>CVE-2026-39883</sub>
+    </td>
+    <td align="center" width="150">
+      <a href="https://github.com/pinginfo"><img src="https://github.com/pinginfo.png?size=100" width="72" alt="pinginfo"><br><sub><b>@pinginfo</b></sub></a><br><sub>桶通知流式输出</sub>
+    </td>
+    <td align="center" width="150">
+      <a href="https://github.com/waterkip"><img src="https://github.com/waterkip.png?size=100" width="72" alt="waterkip"><br><sub><b>@waterkip</b></sub></a><br><sub>文档链接修正</sub>
+    </td>
+  </tr>
+</table>
+<p>
+<a href="https://github.com/magicxor"><img src="https://github.com/magicxor.png?size=64" width="44" alt="magicxor" title="@magicxor"></a>
+<a href="https://github.com/ycjlin"><img src="https://github.com/ycjlin.png?size=64" width="44" alt="ycjlin" title="@ycjlin"></a>
+<a href="https://github.com/davinkevin"><img src="https://github.com/davinkevin.png?size=64" width="44" alt="davinkevin" title="@davinkevin"></a>
+<a href="https://github.com/lem21h"><img src="https://github.com/lem21h.png?size=64" width="44" alt="lem21h" title="@lem21h"></a>
+<a href="https://github.com/sulin37392"><img src="https://github.com/sulin37392.png?size=64" width="44" alt="sulin37392" title="@sulin37392"></a>
+<a href="https://github.com/mosesdd"><img src="https://github.com/mosesdd.png?size=64" width="44" alt="mosesdd" title="@mosesdd"></a>
+<a href="https://github.com/Xavier-777"><img src="https://github.com/Xavier-777.png?size=64" width="44" alt="Xavier-777" title="@Xavier-777"></a>
+<a href="https://github.com/jiadzh"><img src="https://github.com/jiadzh.png?size=64" width="44" alt="jiadzh" title="@jiadzh"></a>
+<a href="https://github.com/TLINDEN"><img src="https://github.com/TLINDEN.png?size=64" width="44" alt="TLINDEN" title="@TLINDEN"></a>
+<a href="https://github.com/AntonOfTheWoods"><img src="https://github.com/AntonOfTheWoods.png?size=64" width="44" alt="AntonOfTheWoods" title="@AntonOfTheWoods"></a>
+<a href="https://github.com/zylpsrs"><img src="https://github.com/zylpsrs.png?size=64" width="44" alt="zylpsrs" title="@zylpsrs"></a>
+<a href="https://github.com/nsanitate"><img src="https://github.com/nsanitate.png?size=64" width="44" alt="nsanitate" title="@nsanitate"></a>
+<a href="https://github.com/makinikm"><img src="https://github.com/makinikm.png?size=64" width="44" alt="makinikm" title="@makinikm"></a>
+<a href="https://github.com/spaceg00se-r"><img src="https://github.com/spaceg00se-r.png?size=64" width="44" alt="spaceg00se-r" title="@spaceg00se-r"></a>
+<a href="https://github.com/heroes1412"><img src="https://github.com/heroes1412.png?size=64" width="44" alt="heroes1412" title="@heroes1412"></a>
+<a href="https://github.com/vampywiz17"><img src="https://github.com/vampywiz17.png?size=64" width="44" alt="vampywiz17" title="@vampywiz17"></a>
+<a href="https://github.com/chalukyaj"><img src="https://github.com/chalukyaj.png?size=64" width="44" alt="chalukyaj" title="@chalukyaj"></a>
+<a href="https://github.com/cbornet"><img src="https://github.com/cbornet.png?size=64" width="44" alt="cbornet" title="@cbornet"></a>
+<a href="https://github.com/jvasile"><img src="https://github.com/jvasile.png?size=64" width="44" alt="jvasile" title="@jvasile"></a>
+<a href="https://github.com/Kesavaambati"><img src="https://github.com/Kesavaambati.png?size=64" width="44" alt="Kesavaambati" title="@Kesavaambati"></a>
+<a href="https://github.com/redfoxfox"><img src="https://github.com/redfoxfox.png?size=64" width="44" alt="redfoxfox" title="@redfoxfox"></a>
+<a href="https://github.com/kuldeep-link11"><img src="https://github.com/kuldeep-link11.png?size=64" width="44" alt="kuldeep-link11" title="@kuldeep-link11"></a>
+<a href="https://github.com/meesudzu"><img src="https://github.com/meesudzu.png?size=64" width="44" alt="meesudzu" title="@meesudzu"></a>
+<a href="https://github.com/pmezhuev"><img src="https://github.com/pmezhuev.png?size=64" width="44" alt="pmezhuev" title="@pmezhuev"></a>
+<a href="https://github.com/kh0mka"><img src="https://github.com/kh0mka.png?size=64" width="44" alt="kh0mka" title="@kh0mka"></a>
+</p>
+
+GitHub 不为 fork 仓库生成贡献者图表，因此 [`CONTRIBUTORS.md`](CONTRIBUTORS.md)（而非 Insights 页面）才是本项目的署名记录，其中逐一记录了每个人对应的改动或报告。
 
 ## 背景
 
-本项目源于上游社区发行与维护模式的变化。维护者对相关变化的分析、替代方案评估与早期维护记录见以下文章：
+本项目因上游收缩社区版而生：Web 控制台被削减为残桩、社区预编译制品停发、社区仓库被归档。Silo 的存在就是让这些部署继续跑下去。Fork 是手段，不是身份 —— 若上游恢复社区版承诺，我们乐意收缩范围，并把修复回馈上游。
 
-| 文章 | 主题 |
-| :-- | :-- |
-| [MinIO已死](https://silo.pgsty.com/zh/blog/post/minio-is-dead/) | 上游项目与发行模式的变化 |
-| [MinIO已死，谁能接盘？](https://silo.pgsty.com/zh/blog/post/minio-alternative/) | 可选替代方案评估 |
-| [MinIO 已死，MinIO 复生](https://silo.pgsty.com/zh/blog/post/minio-resurrect/) | 建立分支及其发行流水线 |
-| [续命 MinIO：承诺兑现](https://silo.pgsty.com/zh/blog/post/minio-promise-kept/) | 初期安全与维护工作 |
+[**宣言**](https://silo.pgsty.com/zh/about/manifesto/)是项目的公开承诺，共十一条，通篇遵循一项纪律：**每一条，要么是已经在做且有公开证据的事实，要么是刻意拒绝的承诺。** 摘要：
+
+- **兼容性合同** —— 协议与数据不改，每个版本都标注经过测试的回滚目标与路径。
+- **许可证无法变更** —— AGPLv3、无 CLA、不做版权聚合；包括我们自己在内，没有人握有足够版权代表所有贡献者重新授权。
+- **永不清单**（只增不减）—— 永不将既有功能移入付费墙、永不给下载设注册墙、永不加入遥测（上游回连路径已整体移除）、永不引入 CLA、永不变更许可证、永不以商标追究正常使用。
+- **安全与发布纪律** —— 每项安全修复配一篇公开公告；通常每一到两个月发布一版，最长不超过一个季度。请拿公开记录检验这两条。
+
+延伸阅读：[MinIO已死](https://silo.pgsty.com/zh/blog/post/minio-is-dead/) · [谁能接盘？](https://silo.pgsty.com/zh/blog/post/minio-alternative/) · [MinIO 复生](https://silo.pgsty.com/zh/blog/post/minio-resurrect/) · [承诺兑现](https://silo.pgsty.com/zh/blog/post/minio-promise-kept/)
 
 ## 许可证与商标
 
-服务端源码依据 [GNU Affero 通用公共许可证第 3 版或任何后续版本](LICENSE)分发。本分支衍生自 [`minio/minio`](https://github.com/minio/minio)：[`NOTICE`](NOTICE) 保留上游产品声明，[`CREDITS`](CREDITS) 记录所含第三方组件的许可证与声明，Git 历史记录下游修改。
+Silo 采用 [AGPL-3.0-or-later](LICENSE)，衍生自 [`minio/minio`](https://github.com/minio/minio)，上游版权与第三方声明完整保留于 [`NOTICE`](NOTICE) 与 [`CREDITS`](CREDITS)。MinIO 是 MinIO, Inc. 的商标，此处使用仅为标识上游项目与兼容谱系。
 
-MinIO 是 MinIO, Inc. 的商标；本文仅为标识上游项目与兼容谱系而使用该名称。Pigsty、Silo 与 `pgsty/silo` 均为独立社区项目，与 MinIO, Inc. 不存在隶属、背书或赞助关系。
-
-门户另行发布项目的[许可证摘要](https://silo.pgsty.com/zh/about/license/)、[文档署名归属](https://silo.pgsty.com/zh/about/attribution/)与[商标声明](https://silo.pgsty.com/zh/about/trademark/)。
+详见：[许可证](https://silo.pgsty.com/zh/about/license/) · [署名归属](https://silo.pgsty.com/zh/about/attribution/) · [商标声明](https://silo.pgsty.com/zh/about/trademark/)
