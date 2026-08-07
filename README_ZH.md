@@ -81,7 +81,7 @@ docker exec silo mcli mb local/demo && docker exec silo mcli ls local
 | Kubernetes | Helm Chart，参见[下载与安装](https://silo.pgsty.com/zh/download/) |
 | 源码构建 | `go build -o silo . && ./silo --version` |
 
-每个版本都附带校验和、SPDX SBOM、Sigstore 签名清单与 GitHub 构建证明。完整安装方式与验证命令见[下载与安装](https://silo.pgsty.com/zh/download/)；从上游 MinIO 迁移 —— 包括接管既有 `minio.service` 与 `/etc/default/minio` —— 见[迁移指南](https://silo.pgsty.com/zh/compatibility/migration/)与[二进制与服务说明](https://silo.pgsty.com/zh/compatibility/binary/)。
+每个版本都附带校验和、SPDX SBOM、Sigstore 签名清单与 GitHub 构建证明。完整安装方式与验证命令见[下载与安装](https://silo.pgsty.com/zh/download/)；从上游 MinIO 迁移 —— 接管既有 `minio.service` 与 `/etc/default/minio`，并用 `/etc/systemd/system/silo.service.d/10-legacy-user.conf` drop-in 保持数据属主不变 —— 见[迁移指南](https://silo.pgsty.com/zh/compatibility/migration/)与[二进制与服务说明](https://silo.pgsty.com/zh/compatibility/binary/)。
 
 ## 兼容性
 

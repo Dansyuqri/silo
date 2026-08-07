@@ -81,7 +81,7 @@ docker exec silo mcli mb local/demo && docker exec silo mcli ls local
 | Kubernetes | Helm chart, see [Download & Install](https://silo.pgsty.com/download/) |
 | Source | `go build -o silo . && ./silo --version` |
 
-Every release ships checksums, SPDX SBOMs, Sigstore-signed manifests, and GitHub build attestations. Installation methods and verification commands are documented at [Download & Install](https://silo.pgsty.com/download/); migrating from upstream MinIO — including taking over an existing `minio.service` and its `/etc/default/minio` — is covered by the [migration guide](https://silo.pgsty.com/compatibility/migration/) and the [binary & service notes](https://silo.pgsty.com/compatibility/binary/).
+Every release ships checksums, SPDX SBOMs, Sigstore-signed manifests, and GitHub build attestations. Installation methods and verification commands are documented at [Download & Install](https://silo.pgsty.com/download/); migrating from upstream MinIO — taking over an existing `minio.service` and its `/etc/default/minio`, and keeping data ownership stable with a `/etc/systemd/system/silo.service.d/10-legacy-user.conf` drop-in — is covered by the [migration guide](https://silo.pgsty.com/compatibility/migration/) and the [binary & service notes](https://silo.pgsty.com/compatibility/binary/).
 
 ## Compatibility
 
